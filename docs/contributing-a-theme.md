@@ -106,6 +106,9 @@ in CI after merge).
 - The diff must contain only the new `themes/<id>.json` file. Do not modify
   `src/vendor/` (synced from upstream), other themes, or site code in the same
   PR.
+- Ownership is enforced by CI: the `author` field of a new theme must be the
+  PR opener's username, and only a theme's author may modify or delete it
+  later. Maintainers can override with the `override-ownership` label.
 - Title suggestion: `theme: <Name>`.
 - CI re-runs the same validation; a green check means the theme imports
   cleanly into T3Code.

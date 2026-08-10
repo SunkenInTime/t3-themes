@@ -6,6 +6,23 @@ on:
     branches: [main]
 
 jobs:
+  ownership:
+    if: >-
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'override-ownership') &&
+      github.event.pull_request.author_association != 'OWNER' &&
+      github.event.pull_request.author_association != 'MEMBER'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Themes may only be changed by their author
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node scripts/check-theme-ownership.mjs
+
   validate:
     runs-on: ubuntu-latest
     steps:
