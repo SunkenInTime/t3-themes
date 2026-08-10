@@ -1,6 +1,6 @@
 import { ConvexProvider, ConvexReactClient, useMutation, useQuery } from "convex/react";
 import { anyApi } from "convex/server";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // The gallery is fully static except for likes; this island talks to Convex
 // directly. When PUBLIC_CONVEX_URL is unset (e.g. local dev without a
@@ -48,6 +48,12 @@ function LikeButtonInner({ themeId }: { themeId: string }) {
 }
 
 export default function LikeButton({ themeId }: { themeId: string }) {
+  // Convex client + localStorage identity are browser-only; render nothing
+  // during Astro's static prerender and mount on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   const client = getConvexClient();
   if (!client) return null;
   return (
