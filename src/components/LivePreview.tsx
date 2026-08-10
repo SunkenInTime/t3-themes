@@ -47,24 +47,17 @@ export default function LivePreview({
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<ThemeAppearance>(definition.appearance);
 
-  // Auto-open: install the theme, then mount the iframe (the app reads the
-  // injected localStorage at boot, so order matters). The preview starts in
-  // the mode matching the site's scheme when the theme ships it.
+  // The page only mounts this island when the build contains the demo
+  // bundle, so no runtime availability check — just install the theme, then
+  // mount the iframe (the app reads the injected localStorage at boot, so
+  // order matters). The preview starts in the mode matching the site's
+  // scheme when the theme ships it.
   useEffect(() => {
-    let cancelled = false;
-    fetch(DEMO_URL, { method: "HEAD" })
-      .then((response) => {
-        if (!response.ok || cancelled) return;
-        const site = document.documentElement.dataset.theme as ThemeAppearance | undefined;
-        const initial = site && modes.includes(site) ? site : definition.appearance;
-        setMode(initial);
-        installTheme(definition, official, initial);
-        setReady(true);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    const site = document.documentElement.dataset.theme as ThemeAppearance | undefined;
+    const initial = site && modes.includes(site) ? site : definition.appearance;
+    setMode(initial);
+    installTheme(definition, official, initial);
+    setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition, official]);
 

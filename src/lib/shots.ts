@@ -13,3 +13,10 @@ export function themeShot(id: string, mode: ThemeAppearance): string | null {
     ? `/shots/${id}-${mode}.png`
     : null;
 }
+
+/** Whether the T3Code demo bundle is part of this build (same tarball as the
+ * shots). Decided at build time so pages never flicker or silently drop the
+ * live preview on a flaky runtime check. */
+export function demoAvailable(): boolean {
+  return existsSync(path.join(publicDir, "sidebar-demo", "demo.html"));
+}

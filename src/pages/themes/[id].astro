@@ -3,7 +3,7 @@ import CopyJsonButton from "../../components/CopyJsonButton";
 import LikeButton from "../../components/LikeButton";
 import LivePreview from "../../components/LivePreview";
 import Layout from "../../layouts/Layout.astro";
-import { themeShot } from "../../lib/shots";
+import { demoAvailable, themeShot } from "../../lib/shots";
 import { allThemes, modePair, previewColors, resolvedModes } from "../../lib/themes";
 import { ThemeWireframe } from "../../vendor/t3code/components/settings/ThemeWireframe";
 import { THEME_COLOR_ROLES, type ThemeColorRole } from "../../vendor/t3code/themePalette";
@@ -84,7 +84,9 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
     see is drawn with the theme's own colors.
   </p>
 
-  <LivePreview client:load definition={definition} official={theme.official} />
+  {demoAvailable() && (
+    <LivePreview client:load definition={definition} official={theme.official} />
+  )}
 
   <!-- The live preview is the visual; wireframes only fill in on builds
        without the demo assets (where the live preview can't render). -->
