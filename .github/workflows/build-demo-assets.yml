@@ -1,0 +1,53 @@
+name: Build demo assets
+
+# Builds the T3Code demo bundle (scripts/sync-demo.sh) and the per-theme
+# screenshots (npm run shots), then publishes both as a tarball on the rolling
+# "demo-assets" release. Deploys fetch it with scripts/fetch-demo-assets.sh
+# instead of rebuilding the t3code monorepo every time.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 7 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "themes/**"
+      - "src/vendor/**"
+      - "scripts/sync-demo.sh"
+      - "scripts/capture-theme-shots.ts"
+
+concurrency:
+  group: demo-assets
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install pnpm (t3code's package manager)
+        run: npm install -g pnpm@11.10.0
+      - run: npm ci
+      - name: Build T3Code demo bundle
+        run: bash scripts/sync-demo.sh
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Capture theme screenshots
+        run: npm run shots
+      - name: Package assets
+        run: tar -czf demo-assets.tar.gz public/sidebar-demo public/shots
+      - name: Publish to the demo-assets release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create demo-assets --title "Demo assets" --notes \
+            "Auto-built T3Code demo bundle + theme screenshots. Deploys download this via scripts/fetch-demo-assets.sh. Rebuilt weekly and when themes or vendored files change." \
+            2>/dev/null || true
+          gh release upload demo-assets demo-assets.tar.gz --clobber

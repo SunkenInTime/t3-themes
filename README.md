@@ -90,10 +90,20 @@ npm run shots          # boots the demo per theme/mode, saves public/shots/*.png
 npm run build
 ```
 
-`public/shots` is gitignored — run both steps in the deploy pipeline (order
-matters: demo → shots → build). Pages fall back to the vendored
-`ThemeWireframe` mini preview when a shot is missing, so the site builds fine
-without them. Cards crossfade to the other appearance's shot on hover.
+`public/shots` is gitignored. You rarely need to run this locally: the
+**Build demo assets** workflow (`build-demo-assets.yml`) does both steps in CI
+— weekly, on demand, and whenever `themes/` or the vendored files change — and
+publishes the result as a tarball on the rolling `demo-assets` release. Deploys
+just download it:
+
+```bash
+# host build command
+bash scripts/fetch-demo-assets.sh && npm run build
+```
+
+Pages fall back to the vendored `ThemeWireframe` mini preview when a shot is
+missing, so the site builds fine without the assets. Cards crossfade to the
+other appearance's shot on hover.
 
 ### Vendor sync
 
