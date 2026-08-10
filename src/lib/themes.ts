@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ThemeCardPreviewColors, ThemePreviewRole } from "../vendor/t3code/components/settings/ThemePreviewCircles";
@@ -34,9 +34,24 @@ export type GalleryTheme = {
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
-/** First-commit time of a theme file, for "newest" sorting. Falls back to
- * file mtime on shallow clones where git history is unavailable. */
+// The assets workflow publishes first-commit dates (full git history isn't
+// available on shallow-cloning deploy hosts); themes missing from it — e.g. a
+// brand-new theme racing the workflow — fall back to git, then file mtime.
+function loadDatesManifest(): Record<string, number> {
+  try {
+    return JSON.parse(
+      readFileSync(path.join(repoRoot, "public", "theme-dates.json"), "utf8"),
+    ) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+const datesManifest = loadDatesManifest();
+
+/** First-commit time of a theme file, for "newest" sorting. */
 function addedAtOf(fileName: string): number {
+  const fromManifest = datesManifest[fileName];
+  if (fromManifest) return fromManifest;
   try {
     const log = execFileSync(
       "git",

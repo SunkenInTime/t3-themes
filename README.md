@@ -129,9 +129,29 @@ The shims in `src/vendor/t3code/lib/` and `ThemePreviewCircles.ts` are ours
 (upstream's versions depend on private packages) — if a sync PR fails to
 build, check whether upstream added imports the shims need to cover.
 
-## To do before going live
+## Launch checklist (t3themes.com on Cloudflare Pages)
 
-- Create the Convex deployment and set `PUBLIC_CONVEX_URL`.
-- Pick a host and run `scripts/sync-demo.sh` + `npm run shots` in its build
-  step (before `npm run build`).
-- Delete the sample themes once real submissions exist.
+Already provisioned: production Convex deployment
+`https://outgoing-canary-533.convex.cloud` (JWT keys and
+`SITE_URL=https://t3themes.com` set). Remaining manual steps:
+
+1. **GitHub OAuth app** (github.com → Settings → Developer settings → OAuth
+   Apps → New): homepage `https://t3themes.com`, callback
+   `https://outgoing-canary-533.convex.site/api/auth/callback/github`. Then:
+   `npx convex env set --prod AUTH_GITHUB_ID <id>` and
+   `npx convex env set --prod AUTH_GITHUB_SECRET <secret>`.
+   (Optional second app with callback
+   `https://fine-partridge-608.convex.site/api/auth/callback/github` +
+   `npx convex env set AUTH_GITHUB_ID/SECRET` to test sign-in locally.)
+2. **Cloudflare Pages**: connect this repo.
+   - Build command: `bash scripts/fetch-demo-assets.sh && npm run build`
+   - Build output directory: `dist`
+   - Environment variables:
+     `PUBLIC_CONVEX_URL=https://outgoing-canary-533.convex.cloud`,
+     `NODE_VERSION=22`
+   - Custom domain: t3themes.com
+3. **Deploy hook**: Pages → Settings → Builds & deployments → create a deploy
+   hook, then save its URL as the `CLOUDFLARE_DEPLOY_HOOK` repo secret
+   (`gh secret set CLOUDFLARE_DEPLOY_HOOK`). The assets workflow calls it so
+   new-theme screenshots re-deploy the site automatically.
+4. Delete the sample themes once real submissions exist.

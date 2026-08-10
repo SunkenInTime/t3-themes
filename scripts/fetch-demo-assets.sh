@@ -16,6 +16,6 @@ if ! curl -fsSL "$URL" -o "$TMP"; then
   exit 0
 fi
 
-rm -rf "$ROOT/public/sidebar-demo" "$ROOT/public/shots"
+rm -rf "$ROOT/public/sidebar-demo" "$ROOT/public/shots" "$ROOT/public/theme-dates.json"
 tar -xzf "$TMP" -C "$ROOT"
 echo "✓ fetched demo assets ($(du -sh "$ROOT/public/sidebar-demo" | cut -f1) demo, $(ls "$ROOT/public/shots" | wc -l | tr -d ' ') shots)"

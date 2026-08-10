@@ -16,6 +16,8 @@ on:
       - "src/vendor/**"
       - "scripts/sync-demo.sh"
       - "scripts/capture-theme-shots.ts"
+      - "scripts/generate-theme-dates.mjs"
+      - ".github/workflows/build-demo-assets.yml"
 
 concurrency:
   group: demo-assets
@@ -28,6 +30,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history: theme-dates.json needs each file's first commit
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -41,13 +46,24 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Capture theme screenshots
         run: npm run shots
+      - name: Generate theme added-dates manifest
+        run: node scripts/generate-theme-dates.mjs
       - name: Package assets
-        run: tar -czf demo-assets.tar.gz public/sidebar-demo public/shots
+        run: tar -czf demo-assets.tar.gz public/sidebar-demo public/shots public/theme-dates.json
       - name: Publish to the demo-assets release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create demo-assets --title "Demo assets" --notes \
-            "Auto-built T3Code demo bundle + theme screenshots. Deploys download this via scripts/fetch-demo-assets.sh. Rebuilt weekly and when themes or vendored files change." \
+            "Auto-built T3Code demo bundle + theme screenshots + added-dates manifest. Deploys download this via scripts/fetch-demo-assets.sh. Rebuilt weekly and when themes or vendored files change." \
             2>/dev/null || true
           gh release upload demo-assets demo-assets.tar.gz --clobber
+      - name: Trigger site redeploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$DEPLOY_HOOK" > /dev/null && echo "redeploy triggered"
+          else
+            echo "CLOUDFLARE_DEPLOY_HOOK secret not set — skipping"
+          fi
