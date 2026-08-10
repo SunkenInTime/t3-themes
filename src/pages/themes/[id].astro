@@ -86,33 +86,23 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
 
   <LivePreview client:load definition={definition} official={theme.official} />
 
-  <div class="mt-10 grid gap-6 md:grid-cols-2">
-    {
-      modes.map(({ mode }) => {
-        const shot = themeShot(definition.id, mode);
-        return (
+  <!-- The live preview is the visual; wireframes only fill in on builds
+       without the demo assets (where the live preview can't render). -->
+  {
+    modes.some(({ mode }) => !themeShot(definition.id, mode)) && (
+      <div class="mt-10 grid gap-6 md:grid-cols-2">
+        {modes.map(({ mode }) => (
           <figure>
-            {shot ? (
-              <img
-                src={shot}
-                alt={`T3Code in ${mode} mode with the ${definition.label} theme`}
-                class="aspect-[16/10] w-full rounded-lg border border-border/60 object-cover object-left-top"
-                decoding="async"
-              />
-            ) : (
-              <ThemeWireframe
-                className="aspect-[16/10]"
-                panes={[{ colors: previewColors(definition, mode)! }]}
-              />
-            )}
-            <figcaption class="mt-2 text-center font-mono text-xs text-ink-muted">
-              {mode}
-            </figcaption>
+            <ThemeWireframe
+              className="aspect-[16/10]"
+              panes={[{ colors: previewColors(definition, mode)! }]}
+            />
+            <figcaption class="mt-2 text-center font-mono text-xs text-ink-muted">{mode}</figcaption>
           </figure>
-        );
-      })
-    }
-  </div>
+        ))}
+      </div>
+    )
+  }
 
   <section class="mt-10">
     <h2 class="mb-3 font-mono text-xs uppercase tracking-widest text-ink-muted">
