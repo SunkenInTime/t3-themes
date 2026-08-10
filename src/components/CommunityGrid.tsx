@@ -36,7 +36,7 @@ function shotClasses(mine: "light" | "dark", hasBoth: boolean): string {
 function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasConvex: boolean }) {
   const hasBoth = Boolean(card.shotLight && card.shotDark);
   return (
-    <article className="group relative overflow-hidden rounded-xl border border-border/60 bg-surface transition-transform duration-200 hover:-translate-y-0.5 hover:border-border">
+    <article className="group relative overflow-hidden rounded-xl border border-border/60 bg-card transition-transform duration-200 hover:-translate-y-0.5 hover:border-border">
       <a href={`/themes/${card.id}/`} className="block">
         <span className="relative block aspect-[16/10] overflow-hidden border-b border-border/60">
           {!card.shotLight && !card.shotDark && (

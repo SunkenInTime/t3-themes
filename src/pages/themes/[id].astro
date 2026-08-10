@@ -79,7 +79,7 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
     </div>
   </div>
 
-  <p class="mt-6 rounded-lg border border-border/60 bg-surface px-4 py-3 text-sm text-ink-muted">
+  <p class="mt-6 rounded-lg border border-border/60 bg-card px-4 py-3 text-sm text-ink-muted">
     This page is wearing <span class="text-ink">{definition.label}</span> — everything you
     see is drawn with the theme's own colors.
   </p>
@@ -151,7 +151,7 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
               <h3 class="mb-2 font-mono text-[11px] text-ink-muted">{group.label}</h3>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 {group.roles.map((role) => (
-                  <div class="flex items-center gap-3 rounded-lg border border-border/60 bg-surface p-2">
+                  <div class="flex items-center gap-3 rounded-lg border border-border/60 bg-card p-2">
                     <span
                       class="h-8 w-8 shrink-0 rounded-md border border-border/60"
                       style={`background-color: ${colors[role]}`}

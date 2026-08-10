@@ -11,6 +11,10 @@
   --color-canvas: var(--app-theme-canvas);
   --color-surface: var(--app-theme-surface);
   --color-surface-raised: var(--app-theme-surface-raised);
+  /* Card/panel fill with guaranteed separation from the canvas: the palette's
+     surface pulled slightly toward its text color (off-white in light mode,
+     lifted charcoal in dark) — works for any theme a page is wearing. */
+  --color-card: color-mix(in oklab, var(--app-theme-surface) 94%, var(--app-theme-text));
   --color-ink: var(--app-theme-text);
   --color-ink-muted: var(--app-theme-text-muted);
   --color-accent: var(--app-theme-accent);
