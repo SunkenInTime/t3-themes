@@ -2,19 +2,18 @@
 import "@fontsource-variable/jetbrains-mono";
 import "../styles/global.css";
 import {
-  T3_CHAT_THEME,
   THEME_COLOR_ROLES,
+  getStandardThemeColors,
   getThemeColorVariable,
-  getThemeColorsForMode,
   type ThemeColors,
 } from "../vendor/t3code/themePalette";
 
 interface Props {
   title?: string;
   description?: string;
-  /** Palettes the page wears per system scheme; default is T3 Chat. Theme
-   * detail pages pass their own theme's modes so the page previews it —
-   * single-mode themes pass the same palette twice and stay fixed. */
+  /** Palettes the page wears per system scheme; default is T3Code's neutral
+   * standard theme. Theme detail pages pass their own theme's modes so the
+   * page previews it — single-mode themes pass the same palette twice. */
   paletteLight?: ThemeColors;
   paletteDark?: ThemeColors;
 }
@@ -22,8 +21,8 @@ interface Props {
 const {
   title = "T3 Themes",
   description = "A community gallery of themes for T3Code.",
-  paletteLight = getThemeColorsForMode(T3_CHAT_THEME, "light")!,
-  paletteDark = getThemeColorsForMode(T3_CHAT_THEME, "dark")!,
+  paletteLight = getStandardThemeColors("light"),
+  paletteDark = getStandardThemeColors("dark"),
 } = Astro.props;
 
 // light-dark() resolves per the visitor's color scheme at paint time.
