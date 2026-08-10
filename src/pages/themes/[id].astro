@@ -4,13 +4,9 @@ import LikeButton from "../../components/LikeButton";
 import LivePreview from "../../components/LivePreview";
 import Layout from "../../layouts/Layout.astro";
 import { themeShot } from "../../lib/shots";
-import { allThemes, previewColors, resolvedModes } from "../../lib/themes";
+import { allThemes, modePair, previewColors, resolvedModes } from "../../lib/themes";
 import { ThemeWireframe } from "../../vendor/t3code/components/settings/ThemeWireframe";
-import {
-  THEME_COLOR_ROLES,
-  getThemeColorsForMode,
-  type ThemeColorRole,
-} from "../../vendor/t3code/themePalette";
+import { THEME_COLOR_ROLES, type ThemeColorRole } from "../../vendor/t3code/themePalette";
 
 export function getStaticPaths() {
   return allThemes.map((theme) => ({
@@ -22,7 +18,7 @@ export function getStaticPaths() {
 const { theme } = Astro.props;
 const { definition } = theme;
 const modes = resolvedModes(definition);
-const pagePalette = getThemeColorsForMode(definition, definition.appearance)!;
+const pagePalettes = modePair(definition);
 const roleLabel = (role: ThemeColorRole) => role.replace(/([A-Z])/g, " $1").toLowerCase();
 
 // Group the color roles by the part of the app they paint. Order and
@@ -51,8 +47,8 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
 <Layout
   title={`${definition.label} · T3 Themes`}
   description={theme.description}
-  palette={pagePalette}
-  appearance={definition.appearance}
+  paletteLight={pagePalettes.light}
+  paletteDark={pagePalettes.dark}
 >
   <a href="/" class="font-mono text-xs text-ink-muted transition-colors hover:text-ink"
     >← all themes</a

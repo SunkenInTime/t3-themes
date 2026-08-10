@@ -106,8 +106,10 @@ bash scripts/fetch-demo-assets.sh && npm run build
 ```
 
 Pages fall back to the vendored `ThemeWireframe` mini preview when a shot is
-missing, so the site builds fine without the assets. Cards crossfade to the
-other appearance's shot on hover.
+missing, so the site builds fine without the assets. Cards show the screenshot
+matching the visitor's system color scheme (hover previews the other mode),
+and the whole site — including theme detail pages with both modes — follows
+the system scheme via CSS `light-dark()`.
 
 ### Vendor sync
 

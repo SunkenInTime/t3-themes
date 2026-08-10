@@ -1,13 +1,34 @@
 ---
-import ThemeCard from "../components/ThemeCard.astro";
+import CommunityGrid, { type CardData } from "../components/CommunityGrid";
 import Layout from "../layouts/Layout.astro";
-import { allThemes, communityThemes, officialThemes } from "../lib/themes";
-import { getThemeColorsForMode } from "../vendor/t3code/themePalette";
+import { themeShot } from "../lib/shots";
+import { communityThemes, lightDark } from "../lib/themes";
+import { getThemeModes } from "../vendor/t3code/themePalette";
 
-const accents = allThemes.map(({ definition }) => ({
+const cards: CardData[] = communityThemes.map((theme) => {
+  const { definition } = theme;
+  return {
+    id: definition.id,
+    label: definition.label,
+    byline: theme.author ? `by ${theme.author}` : "Community",
+    modes: getThemeModes(definition).join(" · "),
+    shotLight: themeShot(definition.id, "light"),
+    shotDark: themeShot(definition.id, "dark"),
+    surface: lightDark(definition, "surface"),
+    text: lightDark(definition, "text"),
+    textMuted: lightDark(definition, "textMuted"),
+    border: lightDark(definition, "border"),
+    swatches: (["canvas", "sidebar", "surface", "accent", "messageAction"] as const).map(
+      (role) => lightDark(definition, role),
+    ),
+    addedAt: theme.addedAt,
+  };
+});
+
+const accents = communityThemes.map(({ definition }) => ({
   id: definition.id,
   label: definition.label,
-  accent: getThemeColorsForMode(definition, definition.appearance)!.accent,
+  accent: lightDark(definition, "accent"),
 }));
 ---
 
@@ -17,8 +38,9 @@ const accents = allThemes.map(({ definition }) => ({
       Every color of T3Code.
     </h1>
     <p class="mt-4 text-lg text-ink-muted">
-      Community-made themes, photographed in the real app. Copy a theme's JSON and
-      paste it into <span class="text-ink">Settings → Themes → Import theme</span>.
+      Themes made by the community, photographed in the real app. Copy a theme's
+      JSON and paste it into
+      <span class="text-ink">Settings → Themes → Import theme</span>.
     </p>
     <div class="mt-6 flex flex-wrap items-center gap-2" aria-label="Jump to a theme">
       {
@@ -27,7 +49,7 @@ const accents = allThemes.map(({ definition }) => ({
             href={`/themes/${id}/`}
             title={label}
             aria-label={label}
-            class="block h-4 w-4 rounded-full ring-1 ring-inset ring-white/15 transition-transform hover:scale-125"
+            class="block h-4 w-4 rounded-full ring-1 ring-inset ring-black/10 transition-transform hover:scale-125 dark:ring-white/15"
             style={`background-color: ${accent}`}
           />
         ))
@@ -35,19 +57,7 @@ const accents = allThemes.map(({ definition }) => ({
     </div>
   </section>
 
-  <section>
-    <h2 class="mb-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
-      Built-in themes
-    </h2>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {officialThemes.map((theme) => <ThemeCard theme={theme} />)}
-    </div>
-  </section>
-
-  <section id="community" class="mt-14">
-    <h2 class="mb-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
-      Community themes
-    </h2>
+  <section id="community">
     {
       communityThemes.length === 0 ? (
         <p class="text-ink-muted">
@@ -61,11 +71,7 @@ const accents = allThemes.map(({ definition }) => ({
           </a>
         </p>
       ) : (
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {communityThemes.map((theme) => (
-            <ThemeCard theme={theme} />
-          ))}
-        </div>
+        <CommunityGrid client:load themes={cards} />
       )
     }
   </section>

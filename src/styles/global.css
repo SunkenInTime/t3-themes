@@ -49,6 +49,7 @@
 }
 
 html {
+  color-scheme: light dark;
   background-color: var(--app-theme-canvas);
   color: var(--app-theme-text);
   font-family: var(--font-sans);

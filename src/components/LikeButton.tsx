@@ -25,7 +25,12 @@ function getClientId(): string {
   return id;
 }
 
-function LikeButtonInner({ themeId }: { themeId: string }) {
+export function getSharedConvexClient(): ConvexReactClient | null {
+  return getConvexClient();
+}
+
+/** Like button for use inside an existing ConvexProvider (e.g. the grid). */
+export function LikeButtonInner({ themeId }: { themeId: string }) {
   const clientId = useMemo(getClientId, []);
   const count = useQuery(anyApi.likes.count, { themeId }) as number | undefined;
   const liked = useQuery(anyApi.likes.isLiked, { themeId, clientId }) as boolean | undefined;

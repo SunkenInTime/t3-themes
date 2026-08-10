@@ -23,6 +23,16 @@ export const toggle = mutation({
   },
 });
 
+export const counts = query({
+  args: {},
+  handler: async (ctx) => {
+    const likes = await ctx.db.query("likes").collect();
+    const byTheme: Record<string, number> = {};
+    for (const like of likes) byTheme[like.themeId] = (byTheme[like.themeId] ?? 0) + 1;
+    return byTheme;
+  },
+});
+
 export const count = query({
   args: { themeId: v.string() },
   handler: async (ctx, { themeId }) => {

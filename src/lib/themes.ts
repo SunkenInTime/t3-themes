@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { statSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ThemeCardPreviewColors, ThemePreviewRole } from "../vendor/t3code/components/settings/ThemePreviewCircles";
 import { THEME_PREVIEW_ROLES } from "../vendor/t3code/components/settings/ThemePreviewCircles";
 import {
@@ -24,7 +28,50 @@ export type GalleryTheme = {
   json: string;
   /** Repo path of the source file for community themes. */
   sourcePath?: string;
+  /** When the theme landed in the repo (ms epoch); 0 when unknown. */
+  addedAt: number;
 };
+
+const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+
+/** First-commit time of a theme file, for "newest" sorting. Falls back to
+ * file mtime on shallow clones where git history is unavailable. */
+function addedAtOf(fileName: string): number {
+  try {
+    const log = execFileSync(
+      "git",
+      ["log", "--diff-filter=A", "--follow", "--format=%ct", "--", `themes/${fileName}`],
+      { cwd: repoRoot, encoding: "utf8" },
+    )
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    const first = log.at(-1);
+    if (first) return Number(first) * 1000;
+  } catch {
+    // not a git checkout — fall through
+  }
+  try {
+    return statSync(path.join(repoRoot, "themes", fileName)).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+/** Resolved colors for both modes; single-mode themes reuse their only mode. */
+export function modePair(definition: ThemeDefinition): { light: ThemeColors; dark: ThemeColors } {
+  const light = getThemeColorsForMode(definition, "light");
+  const dark = getThemeColorsForMode(definition, "dark");
+  return { light: light ?? dark!, dark: dark ?? light! };
+}
+
+/** A `light-dark(...)` CSS value for a role, resolving by system scheme. */
+export function lightDark(definition: ThemeDefinition, role: keyof ThemeColors): string {
+  const pair = modePair(definition);
+  return pair.light[role] === pair.dark[role]
+    ? pair.light[role]
+    : `light-dark(${pair.light[role]}, ${pair.dark[role]})`;
+}
 
 const OFFICIAL_DEFINITIONS: ReadonlyArray<ThemeDefinition> = [
   T3_CHAT_THEME,
@@ -50,6 +97,7 @@ export const officialThemes: GalleryTheme[] = OFFICIAL_DEFINITIONS.map((definiti
   author: "t3-tools",
   description: `Ships with T3Code as the built-in ${definition.label} theme.`,
   json: serializeThemeFile(definition),
+  addedAt: 0,
 }));
 
 export const communityThemes: GalleryTheme[] = Object.entries(communityData)
@@ -65,9 +113,10 @@ export const communityThemes: GalleryTheme[] = Object.entries(communityData)
       description,
       json: communityRaw[path] ?? serializeThemeFile(definition),
       sourcePath: `themes/${fileName}`,
+      addedAt: addedAtOf(fileName),
     } satisfies GalleryTheme;
   })
-  .sort((a, b) => a.definition.label.localeCompare(b.definition.label));
+  .sort((a, b) => b.addedAt - a.addedAt);
 
 export const allThemes: GalleryTheme[] = [...officialThemes, ...communityThemes];
 

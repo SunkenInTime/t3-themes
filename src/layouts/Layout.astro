@@ -6,33 +6,38 @@ import {
   THEME_COLOR_ROLES,
   getThemeColorVariable,
   getThemeColorsForMode,
-  type ThemeAppearance,
   type ThemeColors,
 } from "../vendor/t3code/themePalette";
 
 interface Props {
   title?: string;
   description?: string;
-  /** Palette the whole page wears; defaults to T3 Chat dark. Theme detail
-   * pages pass their own theme here so the page itself previews it. */
-  palette?: ThemeColors;
-  appearance?: ThemeAppearance;
+  /** Palettes the page wears per system scheme; default is T3 Chat. Theme
+   * detail pages pass their own theme's modes so the page previews it —
+   * single-mode themes pass the same palette twice and stay fixed. */
+  paletteLight?: ThemeColors;
+  paletteDark?: ThemeColors;
 }
 
 const {
   title = "T3 Themes",
   description = "A community gallery of themes for T3Code.",
-  palette = getThemeColorsForMode(T3_CHAT_THEME, "dark")!,
-  appearance = "dark",
+  paletteLight = getThemeColorsForMode(T3_CHAT_THEME, "light")!,
+  paletteDark = getThemeColorsForMode(T3_CHAT_THEME, "dark")!,
 } = Astro.props;
 
-const themeStyle = THEME_COLOR_ROLES.map(
-  (role) => `${getThemeColorVariable(role)}: ${palette[role]}`,
-).join("; ");
+// light-dark() resolves per the visitor's color scheme at paint time.
+const themeStyle = THEME_COLOR_ROLES.map((role) => {
+  const value =
+    paletteLight[role] === paletteDark[role]
+      ? paletteLight[role]
+      : `light-dark(${paletteLight[role]}, ${paletteDark[role]})`;
+  return `${getThemeColorVariable(role)}: ${value}`;
+}).join("; ");
 ---
 
 <!doctype html>
-<html lang="en" class={appearance === "dark" ? "dark" : undefined} style={themeStyle}>
+<html lang="en" style={themeStyle}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
