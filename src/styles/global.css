@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* dark: keys off the resolved scheme (set by the header switch or, in
+   "system" mode, the OS preference) instead of the media query alone. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Map site tokens onto T3Code's own theme variables, so pages are styled by
    the same mechanism as the app (and can adopt any theme's palette). */
 @theme inline {

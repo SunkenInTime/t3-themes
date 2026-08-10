@@ -47,6 +47,33 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <title>{title}</title>
+    <script is:inline>
+      // Resolve the color scheme before first paint. Preference lives in
+      // localStorage ("light" | "dark"; absent = follow system). Both
+      // light-dark() colors (via color-scheme) and Tailwind dark: variants
+      // (via data-theme) key off what this sets.
+      (() => {
+        const KEY = "tt-scheme";
+        const root = document.documentElement;
+        const media = matchMedia("(prefers-color-scheme: dark)");
+        const readPref = () => {
+          const value = localStorage.getItem(KEY);
+          return value === "light" || value === "dark" ? value : "system";
+        };
+        const apply = () => {
+          const pref = readPref();
+          const mode = pref === "system" ? (media.matches ? "dark" : "light") : pref;
+          root.dataset.theme = mode;
+          root.style.colorScheme = mode;
+        };
+        media.addEventListener("change", () => {
+          if (readPref() === "system") apply();
+        });
+        apply();
+        window.__schemePref = readPref;
+        window.__applyScheme = apply;
+      })();
+    </script>
   </head>
   <body class="min-h-screen antialiased">
     <header class="border-b border-border/60">
@@ -62,6 +89,23 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
             target="_blank"
             class="transition-colors hover:text-ink">T3Code</a
           >
+          <button
+            id="scheme-toggle"
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-ink-muted transition-colors hover:border-border hover:text-ink"
+          >
+            <svg data-icon="system" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="14" rx="2"></rect>
+              <path d="M8 21h8M12 18v3"></path>
+            </svg>
+            <svg data-icon="light" hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+            </svg>
+            <svg data-icon="dark" hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
+            </svg>
+          </button>
           <a
             href="https://github.com/SunkenInTime/t3-themes/new/main/themes"
             rel="noopener"
@@ -74,6 +118,35 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
     <main class="mx-auto max-w-6xl px-6 py-10">
       <slot />
     </main>
+    <script is:inline>
+      (() => {
+        const KEY = "tt-scheme";
+        const button = document.getElementById("scheme-toggle");
+        if (!button) return;
+        const order = ["system", "light", "dark"];
+        const labels = {
+          system: "Color scheme: system (click for light)",
+          light: "Color scheme: light (click for dark)",
+          dark: "Color scheme: dark (click for system)",
+        };
+        const render = () => {
+          const pref = window.__schemePref();
+          for (const icon of button.querySelectorAll("[data-icon]")) {
+            icon.hidden = icon.dataset.icon !== pref;
+          }
+          button.setAttribute("aria-label", labels[pref]);
+          button.title = labels[pref];
+        };
+        button.addEventListener("click", () => {
+          const next = order[(order.indexOf(window.__schemePref()) + 1) % order.length];
+          if (next === "system") localStorage.removeItem(KEY);
+          else localStorage.setItem(KEY, next);
+          window.__applyScheme();
+          render();
+        });
+        render();
+      })();
+    </script>
     <footer class="border-t border-border/60">
       <div
         class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-6 py-6 font-mono text-xs text-ink-muted"
