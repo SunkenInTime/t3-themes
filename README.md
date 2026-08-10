@@ -58,13 +58,22 @@ npm run build      # static build to dist/
 npx convex dev     # first run: creates a project, writes convex/_generated
 ```
 
-Put the deployment URL in `.env` as `PUBLIC_CONVEX_URL=https://<name>.convex.cloud`,
-then restart `npm run dev`. Deploy with `npx convex deploy` and set
-`PUBLIC_CONVEX_URL` in your host's env (Vercel/Netlify).
+Put the deployment URL in `.env.local` as
+`PUBLIC_CONVEX_URL=https://<name>.convex.cloud`, then restart `npm run dev`.
+Deploy with `npx convex deploy` and set `PUBLIC_CONVEX_URL` in your host's env.
 
-Likes are anonymous: one like per theme per browser (random client id in
-localStorage). Deliberately not sybil-proof; if inflation ever becomes a real
-problem, add GitHub sign-in-to-like on top of the same table.
+Liking requires GitHub sign-in (one like per theme per GitHub account, via
+[Convex Auth](https://labs.convex.dev/auth)); counts are readable anonymously.
+Per-deployment setup:
+
+1. Create a GitHub OAuth app (github.com → Settings → Developer settings →
+   OAuth Apps) with callback URL
+   `https://<deployment>.convex.site/api/auth/callback/github`.
+2. `npx convex env set AUTH_GITHUB_ID <client id>` and
+   `npx convex env set AUTH_GITHUB_SECRET <client secret>`.
+3. `npx convex env set SITE_URL <where the site runs>` (e.g.
+   `http://localhost:4321` in dev) plus the `JWT_PRIVATE_KEY`/`JWKS` pair
+   (see Convex Auth's manual setup docs).
 
 ### Live preview (real T3Code UI in an iframe)
 

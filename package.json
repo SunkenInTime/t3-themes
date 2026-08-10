@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@astrojs/react": "^4.3.0",
+    "@auth/core": "^0.41.3",
+    "@convex-dev/auth": "^0.0.94",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.1.0",
     "astro": "^5.12.0",

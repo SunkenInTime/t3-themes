@@ -1,47 +1,41 @@
-import { ConvexProvider, ConvexReactClient, useMutation, useQuery } from "convex/react";
+import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
+import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { anyApi } from "convex/server";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-// The gallery is fully static except for likes; this island talks to Convex
-// directly. When PUBLIC_CONVEX_URL is unset (e.g. local dev without a
-// deployment) the button renders nothing.
+// The gallery is fully static except likes; these islands talk to Convex
+// directly. Liking requires GitHub sign-in (one like per theme per account);
+// counts are readable anonymously. When PUBLIC_CONVEX_URL is unset the
+// buttons render nothing.
 const convexUrl = import.meta.env.PUBLIC_CONVEX_URL as string | undefined;
 let sharedClient: ConvexReactClient | null = null;
 
-function getConvexClient(): ConvexReactClient | null {
+export function getSharedConvexClient(): ConvexReactClient | null {
   if (!convexUrl) return null;
   sharedClient ??= new ConvexReactClient(convexUrl);
   return sharedClient;
 }
 
-// Anonymous like identity: a random id per browser, not sybil-proof by design.
-function getClientId(): string {
-  const key = "t3themes:client-id";
-  let id = window.localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID();
-    window.localStorage.setItem(key, id);
-  }
-  return id;
-}
-
-export function getSharedConvexClient(): ConvexReactClient | null {
-  return getConvexClient();
-}
-
-/** Like button for use inside an existing ConvexProvider (e.g. the grid). */
+/** Like button for use inside an existing ConvexAuthProvider (e.g. the grid). */
 export function LikeButtonInner({ themeId }: { themeId: string }) {
-  const clientId = useMemo(getClientId, []);
+  const { isAuthenticated } = useConvexAuth();
+  const { signIn } = useAuthActions();
   const count = useQuery(anyApi.likes.count, { themeId }) as number | undefined;
-  const liked = useQuery(anyApi.likes.isLiked, { themeId, clientId }) as boolean | undefined;
+  const liked = useQuery(anyApi.likes.isLiked, { themeId }) as boolean | undefined;
   const toggle = useMutation(anyApi.likes.toggle);
 
   return (
     <button
       type="button"
       aria-pressed={liked === true}
-      title={liked ? "Unlike" : "Like"}
-      onClick={() => void toggle({ themeId, clientId })}
+      title={isAuthenticated ? (liked ? "Unlike" : "Like") : "Sign in with GitHub to like"}
+      onClick={() => {
+        if (isAuthenticated) {
+          void toggle({ themeId });
+        } else {
+          void signIn("github", { redirectTo: window.location.pathname });
+        }
+      }}
       className={`flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-raised px-2.5 py-1 text-xs transition-colors hover:border-border ${
         liked ? "text-accent" : "text-ink-muted"
       }`}
@@ -53,17 +47,17 @@ export function LikeButtonInner({ themeId }: { themeId: string }) {
 }
 
 export default function LikeButton({ themeId }: { themeId: string }) {
-  // Convex client + localStorage identity are browser-only; render nothing
-  // during Astro's static prerender and mount on the client.
+  // Convex client + auth state are browser-only; render nothing during
+  // Astro's static prerender and mount on the client.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  const client = getConvexClient();
+  const client = getSharedConvexClient();
   if (!client) return null;
   return (
-    <ConvexProvider client={client}>
+    <ConvexAuthProvider client={client}>
       <LikeButtonInner themeId={themeId} />
-    </ConvexProvider>
+    </ConvexAuthProvider>
   );
 }

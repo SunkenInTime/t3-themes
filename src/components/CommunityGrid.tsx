@@ -1,4 +1,5 @@
-import { ConvexProvider, useQuery } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
 import { anyApi } from "convex/server";
 import { useEffect, useState } from "react";
 import { LikeButtonInner, getSharedConvexClient } from "./LikeButton";
@@ -167,9 +168,9 @@ export default function CommunityGrid({ themes }: { themes: CardData[] }) {
         </div>
       </div>
       {client ? (
-        <ConvexProvider client={client}>
+        <ConvexAuthProvider client={client}>
           <GridWithLikes themes={themes} sort={sort} />
-        </ConvexProvider>
+        </ConvexAuthProvider>
       ) : (
         <Grid themes={themes} sort={sort} counts={{}} hasConvex={false} />
       )}
