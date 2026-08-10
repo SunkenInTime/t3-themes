@@ -40,6 +40,8 @@ fi
 (cd "$WORK" && pnpm install)
 (cd "$WORK/apps/web" && pnpm run build:sidebar-demo)
 
+# public/ may not exist on a fresh checkout — its contents are gitignored.
+mkdir -p "$ROOT/public"
 rm -rf "$ROOT/public/sidebar-demo"
 cp -R "$WORK/apps/marketing/public/sidebar-demo" "$ROOT/public/sidebar-demo"
 
