@@ -56,22 +56,40 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
         const KEY = "tt-scheme";
         const root = document.documentElement;
         const media = matchMedia("(prefers-color-scheme: dark)");
+        // In-memory fallback keeps the toggle working when storage is blocked.
+        let memoryPref = null;
         const readPref = () => {
-          const value = localStorage.getItem(KEY);
+          let value = memoryPref;
+          try {
+            value = localStorage.getItem(KEY);
+          } catch {}
           return value === "light" || value === "dark" ? value : "system";
         };
+        const writePref = (pref) => {
+          memoryPref = pref === "system" ? null : pref;
+          try {
+            if (pref === "system") localStorage.removeItem(KEY);
+            else localStorage.setItem(KEY, pref);
+          } catch {}
+        };
+        const listeners = new Set();
         const apply = () => {
           const pref = readPref();
           const mode = pref === "system" ? (media.matches ? "dark" : "light") : pref;
           root.dataset.theme = mode;
           root.style.colorScheme = mode;
+          for (const listener of listeners) listener(pref);
         };
-        media.addEventListener("change", () => {
-          if (readPref() === "system") apply();
+        media.addEventListener("change", apply);
+        // Re-assert after bfcache restores, tab switches, and any storage
+        // change (including another tab toggling, or storage being cleared).
+        window.addEventListener("pageshow", apply);
+        document.addEventListener("visibilitychange", apply);
+        window.addEventListener("storage", (event) => {
+          if (event.key === KEY || event.key === null) apply();
         });
         apply();
-        window.__schemePref = readPref;
-        window.__applyScheme = apply;
+        window.__scheme = { readPref, writePref, apply, onChange: (fn) => listeners.add(fn) };
       })();
     </script>
   </head>
@@ -120,17 +138,15 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
     </main>
     <script is:inline>
       (() => {
-        const KEY = "tt-scheme";
         const button = document.getElementById("scheme-toggle");
-        if (!button) return;
+        if (!button || !window.__scheme) return;
         const order = ["system", "light", "dark"];
         const labels = {
           system: "Color scheme: system (click for light)",
           light: "Color scheme: light (click for dark)",
           dark: "Color scheme: dark (click for system)",
         };
-        const render = () => {
-          const pref = window.__schemePref();
+        const render = (pref) => {
           for (const icon of button.querySelectorAll("[data-icon]")) {
             // toggleAttribute: SVG elements don't implement the .hidden property
             icon.toggleAttribute("hidden", icon.dataset.icon !== pref);
@@ -139,13 +155,14 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
           button.title = labels[pref];
         };
         button.addEventListener("click", () => {
-          const next = order[(order.indexOf(window.__schemePref()) + 1) % order.length];
-          if (next === "system") localStorage.removeItem(KEY);
-          else localStorage.setItem(KEY, next);
-          window.__applyScheme();
-          render();
+          const next = order[(order.indexOf(window.__scheme.readPref()) + 1) % order.length];
+          window.__scheme.writePref(next);
+          window.__scheme.apply();
         });
-        render();
+        // Keeps the icon honest whenever the scheme re-resolves (other tabs,
+        // bfcache restores, storage changes) — not just on our own clicks.
+        window.__scheme.onChange(render);
+        render(window.__scheme.readPref());
       })();
     </script>
     <footer class="border-t border-border/60">
