@@ -2,6 +2,8 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { anyApi } from "convex/server";
 import { useEffect, useState } from "react";
+import type { ThemeCardPreviewColors } from "../vendor/t3code/components/settings/ThemePreviewCircles";
+import { ThemeWireframe } from "../vendor/t3code/components/settings/ThemeWireframe";
 import { LikeButtonInner, getSharedConvexClient } from "./LikeButton";
 
 // Serialized at build time by index.astro. Color values are `light-dark(...)`
@@ -13,10 +15,8 @@ export type CardData = {
   modes: string;
   shotLight: string | null;
   shotDark: string | null;
-  surface: string;
-  text: string;
-  textMuted: string;
-  border: string;
+  /** Wireframe fallback for themes whose screenshots don't exist yet. */
+  panes: Array<{ colors: ThemeCardPreviewColors; clip?: "left" | "right" }>;
   swatches: string[];
   addedAt: number;
 };
@@ -36,15 +36,12 @@ function shotClasses(mine: "light" | "dark", hasBoth: boolean): string {
 function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasConvex: boolean }) {
   const hasBoth = Boolean(card.shotLight && card.shotDark);
   return (
-    <article
-      className="group relative overflow-hidden rounded-xl border transition-transform duration-200 hover:-translate-y-0.5"
-      style={{ backgroundColor: card.surface, borderColor: card.border, color: card.text }}
-    >
+    <article className="group relative overflow-hidden rounded-xl border border-border/60 bg-surface transition-transform duration-200 hover:-translate-y-0.5 hover:border-border">
       <a href={`/themes/${card.id}/`} className="block">
-        <span
-          className="relative block aspect-[16/10] overflow-hidden border-b"
-          style={{ borderColor: card.border }}
-        >
+        <span className="relative block aspect-[16/10] overflow-hidden border-b border-border/60">
+          {!card.shotLight && !card.shotDark && (
+            <ThemeWireframe className="h-full rounded-none border-0" panes={card.panes} />
+          )}
           {card.shotLight && (
             <img
               src={card.shotLight}
@@ -67,10 +64,8 @@ function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasCo
         </span>
         <span className="flex items-center justify-between gap-3 px-4 py-3">
           <span className="min-w-0">
-            <span className="block truncate font-medium">{card.label}</span>
-            <span className="mt-0.5 block truncate text-sm" style={{ color: card.textMuted }}>
-              {card.byline}
-            </span>
+            <span className="block truncate font-medium text-ink">{card.label}</span>
+            <span className="mt-0.5 block truncate text-sm text-ink-muted">{card.byline}</span>
           </span>
           <span className="flex shrink-0 flex-col items-end gap-1.5">
             <span className="flex gap-1" aria-hidden="true">
@@ -82,7 +77,7 @@ function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasCo
                 />
               ))}
             </span>
-            <span className="font-mono text-[11px]" style={{ color: card.textMuted }}>
+            <span className="font-mono text-[11px] text-ink-muted">
               {card.modes}
               {likes > 0 && ` · ♥ ${likes}`}
             </span>

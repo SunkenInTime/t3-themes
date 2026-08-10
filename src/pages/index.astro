@@ -2,7 +2,7 @@
 import CommunityGrid, { type CardData } from "../components/CommunityGrid";
 import Layout from "../layouts/Layout.astro";
 import { themeShot } from "../lib/shots";
-import { communityThemes, lightDark } from "../lib/themes";
+import { communityThemes, lightDark, wireframePanes } from "../lib/themes";
 import { getThemeModes } from "../vendor/t3code/themePalette";
 
 const cards: CardData[] = communityThemes.map((theme) => {
@@ -14,10 +14,7 @@ const cards: CardData[] = communityThemes.map((theme) => {
     modes: getThemeModes(definition).join(" · "),
     shotLight: themeShot(definition.id, "light"),
     shotDark: themeShot(definition.id, "dark"),
-    surface: lightDark(definition, "surface"),
-    text: lightDark(definition, "text"),
-    textMuted: lightDark(definition, "textMuted"),
-    border: lightDark(definition, "border"),
+    panes: wireframePanes(definition),
     swatches: (["canvas", "sidebar", "surface", "accent", "messageAction"] as const).map(
       (role) => lightDark(definition, role),
     ),
