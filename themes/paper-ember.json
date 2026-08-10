@@ -3,8 +3,8 @@
   "id": "paper-ember",
   "name": "Paper Ember",
   "appearance": "light",
-  "author": "t3-themes",
-  "description": "Sample theme: warm paper light mode with a charcoal dark variant. Replace with real community submissions.",
+  "author": "SunkenInTime",
+  "description": "Warm paper light mode with a glowing charcoal-ember dark variant.",
   "colors": {
     "canvas": "#faf6f0",
     "chrome": "#faf6f0",
