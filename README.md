@@ -60,7 +60,8 @@ npx convex dev     # first run: creates a project, writes convex/_generated
 
 Put the deployment URL in `.env.local` as
 `PUBLIC_CONVEX_URL=https://<name>.convex.cloud`, then restart `npm run dev`.
-Deploy with `npx convex deploy` and set `PUBLIC_CONVEX_URL` in your host's env.
+After changing anything in `convex/`, run `npx convex deploy` to update the
+production deployment too.
 
 Liking requires GitHub sign-in (one like per theme per GitHub account, via
 [Convex Auth](https://labs.convex.dev/auth)); counts are readable anonymously.
