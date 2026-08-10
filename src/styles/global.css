@@ -17,9 +17,34 @@
   --color-code-foreground: var(--app-theme-code-foreground);
 }
 
+@font-face {
+  font-family: "Marlin Soft SQ";
+  src: url("/fonts/MarlinSoftSQ-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Marlin Soft SQ";
+  src: url("/fonts/MarlinSoftSQ-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Marlin Soft SQ";
+  src: url("/fonts/MarlinSoftSQ-Bold.woff2") format("woff2");
+  font-weight: 600 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Marlin Soft SQ";
+  src: url("/fonts/MarlinSoftSQ-ExtraBlack.woff2") format("woff2");
+  font-weight: 800 900;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque Variable", "DM Sans Variable", ui-sans-serif, sans-serif;
+  --font-sans: "Marlin Soft SQ", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Marlin Soft SQ", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
 }
 
