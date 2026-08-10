@@ -10,6 +10,10 @@ repo (see `src/vendor/t3code/`) and kept current by a scheduled workflow.
 
 ## Submitting a theme
 
+Full field-by-field instructions (also written for coding agents) live in
+[`docs/contributing-a-theme.md`](docs/contributing-a-theme.md). The short
+version:
+
 1. Build your theme in T3Code (Settings → Themes → Create theme, or import a
    VS Code theme) and export/copy its JSON.
 2. Add it as `themes/<id>.json`, where `<id>` matches the `id` field
