@@ -37,52 +37,40 @@ export default function LivePreview({
   definition: ThemeDefinition;
   official: boolean;
 }) {
-  const [available, setAvailable] = useState<boolean | null>(null);
-  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
 
+  // Auto-open: install the theme, then mount the iframe (the app reads the
+  // injected localStorage at boot, so order matters).
   useEffect(() => {
+    let cancelled = false;
     fetch(DEMO_URL, { method: "HEAD" })
-      .then((response) => setAvailable(response.ok))
-      .catch(() => setAvailable(false));
-  }, []);
+      .then((response) => {
+        if (!response.ok || cancelled) return;
+        installTheme(definition, official);
+        setReady(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [definition, official]);
 
-  // Keep a running iframe in sync if the visitor navigates between themes.
-  useEffect(() => {
-    if (open) installTheme(definition, official);
-  }, [open, definition, official]);
-
-  if (available !== true) return null;
+  if (!ready) return null;
 
   return (
     <section className="mt-10">
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-ink-muted">
+      <h2 className="mb-3 font-mono text-xs uppercase tracking-widest text-ink-muted">
         Live preview
       </h2>
-      {open ? (
-        <iframe
-          src={DEMO_URL}
-          title={`T3Code demo with the ${definition.label} theme`}
-          className="h-[42rem] w-full rounded-xl border border-border/60 bg-surface"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            installTheme(definition, official);
-            setOpen(true);
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/60 bg-surface py-16 text-ink-muted transition-colors hover:border-border hover:text-ink"
-        >
-          <span aria-hidden>▶</span>
-          <span>
-            Try <span className="font-medium">{definition.label}</span> in the real T3Code
-            interface
-          </span>
-        </button>
-      )}
-      <p className="mt-2 text-xs text-ink-muted">
-        This is T3Code's actual web UI running on demo data — explore it; nothing you do here
-        leaves your browser.
+      <iframe
+        src={DEMO_URL}
+        title={`T3Code demo with the ${definition.label} theme`}
+        loading="lazy"
+        className="h-[42rem] w-full rounded-xl border border-border/60 bg-surface"
+      />
+      <p className="mt-2 font-mono text-xs text-ink-muted">
+        T3Code's actual web UI on demo data — explore it; nothing you do here leaves your
+        browser.
       </p>
     </section>
   );

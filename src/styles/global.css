@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* Map the tokens the vendored wireframe uses onto T3Code's own theme
-   variables, so the site is styled by the same mechanism as the app. */
+/* Map site tokens onto T3Code's own theme variables, so pages are styled by
+   the same mechanism as the app (and can adopt any theme's palette). */
 @theme inline {
   --color-border: var(--app-theme-border);
   --color-canvas: var(--app-theme-canvas);
@@ -17,7 +17,28 @@
   --color-code-foreground: var(--app-theme-code-foreground);
 }
 
+@theme {
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "DM Sans Variable", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
+}
+
 html {
   background-color: var(--app-theme-canvas);
   color: var(--app-theme-text);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-theme-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

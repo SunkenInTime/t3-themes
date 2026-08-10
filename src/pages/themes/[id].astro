@@ -8,6 +8,7 @@ import { allThemes, previewColors, resolvedModes } from "../../lib/themes";
 import { ThemeWireframe } from "../../vendor/t3code/components/settings/ThemeWireframe";
 import {
   THEME_COLOR_ROLES,
+  getThemeColorsForMode,
   type ThemeColorRole,
 } from "../../vendor/t3code/themePalette";
 
@@ -21,16 +22,45 @@ export function getStaticPaths() {
 const { theme } = Astro.props;
 const { definition } = theme;
 const modes = resolvedModes(definition);
-const roleLabel = (role: ThemeColorRole) =>
-  role.replace(/([A-Z])/g, " $1").toLowerCase();
+const pagePalette = getThemeColorsForMode(definition, definition.appearance)!;
+const roleLabel = (role: ThemeColorRole) => role.replace(/([A-Z])/g, " $1").toLowerCase();
+
+// Group the color roles by the part of the app they paint. Order and
+// membership are derived by prefix so new upstream roles land somewhere.
+const GROUPS: Array<{ label: string; prefixes: string[] }> = [
+  { label: "surfaces", prefixes: ["canvas", "chrome", "surface", "border", "input"] },
+  { label: "text", prefixes: ["text", "placeholder", "secondaryLabel", "iconMuted"] },
+  { label: "accent & controls", prefixes: ["accent", "focus", "secondary", "muted"] },
+  { label: "conversation & code", prefixes: ["message", "code"] },
+  { label: "sidebar", prefixes: ["sidebar"] },
+  { label: "toolbar", prefixes: ["toolbar"] },
+  { label: "terminal", prefixes: ["terminal"] },
+  { label: "status", prefixes: ["error", "warning", "update"] },
+];
+const groupOf = (role: string) =>
+  GROUPS.find((group) => group.prefixes.some((prefix) => role.startsWith(prefix)))?.label ??
+  "other";
+const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
+  .map((label) => ({
+    label,
+    roles: THEME_COLOR_ROLES.filter((role) => groupOf(role) === label),
+  }))
+  .filter((group) => group.roles.length > 0);
 ---
 
-<Layout title={`${definition.label} · T3 Themes`} description={theme.description}>
-  <a href="/" class="text-sm text-ink-muted hover:text-ink">← All themes</a>
+<Layout
+  title={`${definition.label} · T3 Themes`}
+  description={theme.description}
+  palette={pagePalette}
+  appearance={definition.appearance}
+>
+  <a href="/" class="font-mono text-xs text-ink-muted transition-colors hover:text-ink"
+    >← all themes</a
+  >
 
-  <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-semibold tracking-tight">{definition.label}</h1>
+      <h1 class="font-display text-4xl font-semibold tracking-tight">{definition.label}</h1>
       <p class="mt-1 text-ink-muted">
         {theme.official ? "Built into T3Code" : theme.author ? `by ` : "Community theme"}
         {
@@ -38,7 +68,7 @@ const roleLabel = (role: ThemeColorRole) =>
             <a
               href={`https://github.com/${theme.author}`}
               rel="noopener"
-              class="underline hover:text-ink"
+              class="underline transition-colors hover:text-ink"
             >
               {theme.author}
             </a>
@@ -53,7 +83,14 @@ const roleLabel = (role: ThemeColorRole) =>
     </div>
   </div>
 
-  <div class="mt-8 grid gap-6 md:grid-cols-2">
+  <p class="mt-6 rounded-lg border border-border/60 bg-surface px-4 py-3 text-sm text-ink-muted">
+    This page is wearing <span class="text-ink">{definition.label}</span> — everything you
+    see is drawn with the theme's own colors.
+  </p>
+
+  <LivePreview client:load definition={definition} official={theme.official} />
+
+  <div class="mt-10 grid gap-6 md:grid-cols-2">
     {
       modes.map(({ mode }) => {
         const shot = themeShot(definition.id, mode);
@@ -72,17 +109,17 @@ const roleLabel = (role: ThemeColorRole) =>
                 panes={[{ colors: previewColors(definition, mode)! }]}
               />
             )}
-            <figcaption class="mt-2 text-center text-sm text-ink-muted">{mode}</figcaption>
+            <figcaption class="mt-2 text-center font-mono text-xs text-ink-muted">
+              {mode}
+            </figcaption>
           </figure>
         );
       })
     }
   </div>
 
-  <LivePreview client:load definition={definition} official={theme.official} />
-
   <section class="mt-10">
-    <h2 class="mb-3 text-sm font-medium uppercase tracking-widest text-ink-muted">
+    <h2 class="mb-3 font-mono text-xs uppercase tracking-widest text-ink-muted">
       How to install
     </h2>
     <ol class="list-inside list-decimal space-y-1 text-sm text-ink-muted">
@@ -92,12 +129,12 @@ const roleLabel = (role: ThemeColorRole) =>
     </ol>
     {
       theme.sourcePath && (
-        <p class="mt-3 text-sm text-ink-muted">
-          Source:{" "}
+        <p class="mt-3 font-mono text-xs text-ink-muted">
+          source:{" "}
           <a
             href={`https://github.com/SunkenInTime/t3-themes/blob/main/${theme.sourcePath}`}
             rel="noopener"
-            class="underline hover:text-ink"
+            class="underline transition-colors hover:text-ink"
           >
             {theme.sourcePath}
           </a>
@@ -109,20 +146,27 @@ const roleLabel = (role: ThemeColorRole) =>
   {
     modes.map(({ mode, colors }) => (
       <section class="mt-10">
-        <h2 class="mb-3 text-sm font-medium uppercase tracking-widest text-ink-muted">
+        <h2 class="mb-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
           {mode} palette
         </h2>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {THEME_COLOR_ROLES.map((role) => (
-            <div class="flex items-center gap-3 rounded-lg border border-border/60 bg-surface p-2">
-              <span
-                class="h-8 w-8 shrink-0 rounded-md border border-border/60"
-                style={`background-color: ${colors[role]}`}
-              />
-              <span class="min-w-0">
-                <span class="block truncate text-xs">{roleLabel(role)}</span>
-                <span class="block font-mono text-xs text-ink-muted">{colors[role]}</span>
-              </span>
+        <div class="space-y-6">
+          {groupedRoles.map((group) => (
+            <div>
+              <h3 class="mb-2 font-mono text-[11px] text-ink-muted">{group.label}</h3>
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {group.roles.map((role) => (
+                  <div class="flex items-center gap-3 rounded-lg border border-border/60 bg-surface p-2">
+                    <span
+                      class="h-8 w-8 shrink-0 rounded-md border border-border/60"
+                      style={`background-color: ${colors[role]}`}
+                    />
+                    <span class="min-w-0">
+                      <span class="block truncate text-xs">{roleLabel(role)}</span>
+                      <span class="block font-mono text-xs text-ink-muted">{colors[role]}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

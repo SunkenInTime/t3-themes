@@ -2,7 +2,7 @@
 import { ThemeWireframe } from "../vendor/t3code/components/settings/ThemeWireframe";
 import { themeShot } from "../lib/shots";
 import { wireframePanes, type GalleryTheme } from "../lib/themes";
-import { getThemeModes } from "../vendor/t3code/themePalette";
+import { getThemeColorsForMode, getThemeModes } from "../vendor/t3code/themePalette";
 import LikeButton from "./LikeButton";
 
 interface Props {
@@ -12,17 +12,21 @@ interface Props {
 const { theme } = Astro.props;
 const { definition } = theme;
 const modes = getThemeModes(definition);
+const colors = getThemeColorsForMode(definition, definition.appearance)!;
 const shot = themeShot(definition.id, definition.appearance);
 const altMode = modes.find((mode) => mode !== definition.appearance);
 const altShot = altMode ? themeShot(definition.id, altMode) : null;
 const panes = shot ? [] : wireframePanes(definition);
+const swatchRoles = ["canvas", "sidebar", "surface", "accent", "messageAction"] as const;
 ---
 
+<!-- Each card wears its own theme's colors -->
 <article
-  class="group relative rounded-xl border border-border/60 bg-surface p-3 transition-colors hover:border-border"
+  class="group relative overflow-hidden rounded-xl border transition-transform duration-200 hover:-translate-y-0.5"
+  style={`background-color: ${colors.surface}; border-color: ${colors.border}; color: ${colors.text}`}
 >
   <a href={`/themes/${definition.id}/`} class="block">
-    <span class="relative block aspect-[16/10] overflow-hidden rounded-lg border border-border/60">
+    <span class="relative block aspect-[16/10] overflow-hidden border-b" style={`border-color: ${colors.border}`}>
       {
         shot ? (
           <>
@@ -49,12 +53,28 @@ const panes = shot ? [] : wireframePanes(definition);
         )
       }
     </span>
-    <span class="mt-3 flex items-baseline justify-between gap-2 px-1">
-      <span class="truncate font-medium">{definition.label}</span>
-      <span class="shrink-0 text-xs text-ink-muted">{modes.join(" · ")}</span>
-    </span>
-    <span class="mt-0.5 block truncate px-1 text-sm text-ink-muted">
-      {theme.official ? "Built-in" : theme.author ? `by ${theme.author}` : "Community"}
+    <span class="flex items-center justify-between gap-3 px-4 py-3">
+      <span class="min-w-0">
+        <span class="block truncate font-medium">{definition.label}</span>
+        <span class="mt-0.5 block truncate text-sm" style={`color: ${colors.textMuted}`}>
+          {theme.official ? "Built-in" : theme.author ? `by ${theme.author}` : "Community"}
+        </span>
+      </span>
+      <span class="flex shrink-0 flex-col items-end gap-1.5">
+        <span class="flex gap-1" aria-hidden="true">
+          {
+            swatchRoles.map((role) => (
+              <span
+                class="h-3 w-3 rounded-full ring-1 ring-inset ring-white/10"
+                style={`background-color: ${colors[role]}`}
+              />
+            ))
+          }
+        </span>
+        <span class="font-mono text-[11px]" style={`color: ${colors.textMuted}`}>
+          {modes.join(" · ")}
+        </span>
+      </span>
     </span>
   </a>
   <div class="absolute right-3 top-3 z-10">
