@@ -1,0 +1,33 @@
+{
+  "name": "t3-themes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "validate": "tsx scripts/validate-themes.ts",
+    "sync-vendor": "node scripts/sync-vendor.mjs",
+    "shots": "tsx scripts/capture-theme-shots.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^4.3.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "astro": "^5.12.0",
+    "clsx": "^2.1.1",
+    "convex": "^1.25.0",
+    "effect": "4.0.0-beta.103",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.3.0",
+    "tailwindcss": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "playwright": "^1.62.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}

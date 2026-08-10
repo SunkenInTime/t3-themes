@@ -1,0 +1,36 @@
+name: Sync vendored T3Code files
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch upstream files
+        run: npm run sync-vendor
+      - name: Verify themes still parse and the site still builds
+        run: npm run validate && npm run build
+      - name: Open PR if anything changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/sync-vendor
+          commit-message: "chore: sync vendored T3Code theme files"
+          title: "chore: sync vendored T3Code theme files"
+          body: >
+            Automated sync of `themePalette.ts` and `ThemeWireframe.tsx` from
+            [pingdotgg/t3code](https://github.com/pingdotgg/t3code). Validation
+            and a full build ran against the new files before this PR was
+            opened. Review the diff for new color roles that gallery pages may
+            want to surface.

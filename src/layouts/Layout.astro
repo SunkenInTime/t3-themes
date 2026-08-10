@@ -1,0 +1,67 @@
+---
+import "../styles/global.css";
+import {
+  T3_CHAT_THEME,
+  THEME_COLOR_ROLES,
+  getThemeColorVariable,
+  getThemeColorsForMode,
+} from "../vendor/t3code/themePalette";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "T3 Themes",
+  description = "A community gallery of themes for T3Code.",
+} = Astro.props;
+
+// The site itself runs on T3Code's theme variables, seeded with the
+// flagship T3 Chat dark palette.
+const palette = getThemeColorsForMode(T3_CHAT_THEME, "dark")!;
+const themeStyle = THEME_COLOR_ROLES.map(
+  (role) => `${getThemeColorVariable(role)}: ${palette[role]}`,
+).join("; ");
+---
+
+<!doctype html>
+<html lang="en" class="dark" style={themeStyle}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen antialiased">
+    <header class="border-b border-border/60">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <a href="/" class="text-lg font-semibold tracking-tight">
+          T3 <span class="text-accent">Themes</span>
+        </a>
+        <nav class="flex items-center gap-5 text-sm text-ink-muted">
+          <a href="/#community" class="hover:text-ink">Community</a>
+          <a
+            href="https://github.com/pingdotgg/t3code"
+            rel="noopener"
+            target="_blank"
+            class="hover:text-ink">T3Code</a
+          >
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-6 py-10">
+      <slot />
+    </main>
+    <footer class="border-t border-border/60">
+      <div class="mx-auto max-w-6xl px-6 py-6 text-sm text-ink-muted">
+        Not affiliated with T3 Tools. Preview components adapted from the
+        MIT-licensed <a
+          href="https://github.com/pingdotgg/t3code"
+          rel="noopener"
+          class="underline hover:text-ink">t3code</a
+        > repository.
+      </div>
+    </footer>
+  </body>
+</html>

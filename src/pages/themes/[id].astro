@@ -1,0 +1,132 @@
+---
+import CopyJsonButton from "../../components/CopyJsonButton";
+import LikeButton from "../../components/LikeButton";
+import LivePreview from "../../components/LivePreview";
+import Layout from "../../layouts/Layout.astro";
+import { themeShot } from "../../lib/shots";
+import { allThemes, previewColors, resolvedModes } from "../../lib/themes";
+import { ThemeWireframe } from "../../vendor/t3code/components/settings/ThemeWireframe";
+import {
+  THEME_COLOR_ROLES,
+  type ThemeColorRole,
+} from "../../vendor/t3code/themePalette";
+
+export function getStaticPaths() {
+  return allThemes.map((theme) => ({
+    params: { id: theme.definition.id },
+    props: { theme },
+  }));
+}
+
+const { theme } = Astro.props;
+const { definition } = theme;
+const modes = resolvedModes(definition);
+const roleLabel = (role: ThemeColorRole) =>
+  role.replace(/([A-Z])/g, " $1").toLowerCase();
+---
+
+<Layout title={`${definition.label} · T3 Themes`} description={theme.description}>
+  <a href="/" class="text-sm text-ink-muted hover:text-ink">← All themes</a>
+
+  <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight">{definition.label}</h1>
+      <p class="mt-1 text-ink-muted">
+        {theme.official ? "Built into T3Code" : theme.author ? `by ` : "Community theme"}
+        {
+          !theme.official && theme.author && (
+            <a
+              href={`https://github.com/${theme.author}`}
+              rel="noopener"
+              class="underline hover:text-ink"
+            >
+              {theme.author}
+            </a>
+          )
+        }
+      </p>
+      {theme.description && <p class="mt-2 max-w-xl text-ink-muted">{theme.description}</p>}
+    </div>
+    <div class="flex items-center gap-3">
+      <LikeButton client:load themeId={definition.id} />
+      <CopyJsonButton client:load json={theme.json} />
+    </div>
+  </div>
+
+  <div class="mt-8 grid gap-6 md:grid-cols-2">
+    {
+      modes.map(({ mode }) => {
+        const shot = themeShot(definition.id, mode);
+        return (
+          <figure>
+            {shot ? (
+              <img
+                src={shot}
+                alt={`T3Code in ${mode} mode with the ${definition.label} theme`}
+                class="aspect-[16/10] w-full rounded-lg border border-border/60 object-cover object-left-top"
+                decoding="async"
+              />
+            ) : (
+              <ThemeWireframe
+                className="aspect-[16/10]"
+                panes={[{ colors: previewColors(definition, mode)! }]}
+              />
+            )}
+            <figcaption class="mt-2 text-center text-sm text-ink-muted">{mode}</figcaption>
+          </figure>
+        );
+      })
+    }
+  </div>
+
+  <LivePreview client:load definition={definition} official={theme.official} />
+
+  <section class="mt-10">
+    <h2 class="mb-3 text-sm font-medium uppercase tracking-widest text-ink-muted">
+      How to install
+    </h2>
+    <ol class="list-inside list-decimal space-y-1 text-sm text-ink-muted">
+      <li>Copy the theme JSON with the button above.</li>
+      <li>In T3Code, open <span class="text-ink">Settings → Themes → Import theme</span>.</li>
+      <li>Paste the JSON and confirm.</li>
+    </ol>
+    {
+      theme.sourcePath && (
+        <p class="mt-3 text-sm text-ink-muted">
+          Source:{" "}
+          <a
+            href={`https://github.com/SunkenInTime/t3-themes/blob/main/${theme.sourcePath}`}
+            rel="noopener"
+            class="underline hover:text-ink"
+          >
+            {theme.sourcePath}
+          </a>
+        </p>
+      )
+    }
+  </section>
+
+  {
+    modes.map(({ mode, colors }) => (
+      <section class="mt-10">
+        <h2 class="mb-3 text-sm font-medium uppercase tracking-widest text-ink-muted">
+          {mode} palette
+        </h2>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {THEME_COLOR_ROLES.map((role) => (
+            <div class="flex items-center gap-3 rounded-lg border border-border/60 bg-surface p-2">
+              <span
+                class="h-8 w-8 shrink-0 rounded-md border border-border/60"
+                style={`background-color: ${colors[role]}`}
+              />
+              <span class="min-w-0">
+                <span class="block truncate text-xs">{roleLabel(role)}</span>
+                <span class="block font-mono text-xs text-ink-muted">{colors[role]}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+</Layout>

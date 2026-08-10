@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+convex/_generated/
+.DS_Store
+public/sidebar-demo
+public/shots

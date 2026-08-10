@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Map the tokens the vendored wireframe uses onto T3Code's own theme
+   variables, so the site is styled by the same mechanism as the app. */
+@theme inline {
+  --color-border: var(--app-theme-border);
+  --color-canvas: var(--app-theme-canvas);
+  --color-surface: var(--app-theme-surface);
+  --color-surface-raised: var(--app-theme-surface-raised);
+  --color-ink: var(--app-theme-text);
+  --color-ink-muted: var(--app-theme-text-muted);
+  --color-accent: var(--app-theme-accent);
+  --color-accent-foreground: var(--app-theme-accent-foreground);
+  --color-accent-surface: var(--app-theme-accent-surface);
+  --color-sidebar: var(--app-theme-sidebar);
+  --color-code: var(--app-theme-code-background);
+  --color-code-foreground: var(--app-theme-code-foreground);
+}
+
+html {
+  background-color: var(--app-theme-canvas);
+  color: var(--app-theme-text);
+}
