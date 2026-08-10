@@ -132,7 +132,8 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
         const render = () => {
           const pref = window.__schemePref();
           for (const icon of button.querySelectorAll("[data-icon]")) {
-            icon.hidden = icon.dataset.icon !== pref;
+            // toggleAttribute: SVG elements don't implement the .hidden property
+            icon.toggleAttribute("hidden", icon.dataset.icon !== pref);
           }
           button.setAttribute("aria-label", labels[pref]);
           button.title = labels[pref];
