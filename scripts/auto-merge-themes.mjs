@@ -11,6 +11,30 @@ const GRACE_MINUTES = 10;
 const DENY =
   /\b(nigg|fagg?ot|kike|chink|wetback|beaner|tranny|retard(?:ed)?|rape|hitler|nazi)\w*\b/i;
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// GitHub computes mergeability lazily; querying kicks the computation off,
+// so poll a few times before treating UNKNOWN as a real answer.
+async function viewPr(number) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const pr = JSON.parse(
+      gh(
+        "pr",
+        "view",
+        String(number),
+        "--json",
+        "number,title,isDraft,labels,createdAt,files,headRefOid,mergeable,author",
+      ),
+    );
+    if (pr.mergeable !== "UNKNOWN") return pr;
+    await sleep(5_000);
+  }
+  return JSON.parse(
+    gh("pr", "view", String(number), "--json",
+      "number,title,isDraft,labels,createdAt,files,headRefOid,mergeable,author"),
+  );
+}
+
 const prNumbers = JSON.parse(
   gh("pr", "list", "--state", "open", "--json", "number", "--limit", "50"),
 ).map((pr) => pr.number);
@@ -18,15 +42,7 @@ const prNumbers = JSON.parse(
 let merged = 0;
 
 for (const number of prNumbers) {
-  const pr = JSON.parse(
-    gh(
-      "pr",
-      "view",
-      String(number),
-      "--json",
-      "number,title,isDraft,labels,createdAt,files,headRefOid,mergeable,author",
-    ),
-  );
+  const pr = await viewPr(number);
   const skip = (reason) => console.log(`#${number}: skip — ${reason}`);
 
   if (pr.isDraft) { skip("draft"); continue; }
