@@ -1,158 +1,88 @@
 # T3 Themes
 
-A community gallery of custom themes for [T3Code](https://github.com/pingdotgg/t3code).
-Static Astro site; themes live in this repo as JSON and are submitted by pull
-request. Likes are the only dynamic feature, backed by Convex.
+**[t3themes.com](https://t3themes.com)** — a community gallery of custom themes
+for [T3Code](https://github.com/pingdotgg/t3code).
 
-Every preview is rendered with T3Code's **own** theme code: `themePalette.ts`
-and `ThemeWireframe.tsx` are vendored verbatim from the MIT-licensed t3code
-repo (see `src/vendor/t3code/`) and kept current by a scheduled workflow.
+![The T3 Themes gallery](docs/assets/gallery.png)
 
-## Submitting a theme
+Every theme is **photographed inside the real T3Code app** (light and dark),
+and every theme page embeds a **live, explorable T3Code demo** wearing that
+theme. Sort by likes or newest, sign in with GitHub to like, copy a theme's
+JSON, and paste it into **Settings → Themes → Import theme**.
 
-Full field-by-field instructions (also written for coding agents) live in
-[`docs/contributing-a-theme.md`](docs/contributing-a-theme.md). The short
-version:
+## Submit a theme
 
-1. Build your theme in T3Code (Settings → Themes → Create theme, or import a
-   VS Code theme) and export/copy its JSON.
-2. Add it as `themes/<id>.json`, where `<id>` matches the `id` field
-   (lowercase letters, numbers, hyphens). Add two gallery-only fields —
-   T3Code ignores them on import:
+Go to **[t3themes.com/submit](https://t3themes.com/submit)**: paste the JSON
+exported from T3Code, see it validated with the app's own parser and previewed
+in the real UI, then open a prefilled pull request — no git knowledge needed.
 
-   ```jsonc
-   {
-     "version": 1,
-     "id": "my-theme",
-     "name": "My Theme",
-     "appearance": "dark",
-     "author": "your-github-username",
-     "description": "One or two sentences, max 200 chars.",
-     "colors": { "canvas": "#0b0e14", "accent": "#7aa2f7" /* ... */ }
-   }
-   ```
+Prefer doing it by hand (or you're a coding agent)? Follow
+[`docs/contributing-a-theme.md`](docs/contributing-a-theme.md) — one new
+`themes/<id>.json` file, `npm run validate` must pass, touch nothing else.
 
-3. Open a pull request. CI validates your file with T3Code's actual parser
-   (`parseThemeFile`), so if CI is green the theme imports cleanly.
+Rules enforced by CI on every PR:
 
-Any color role you omit falls back to the default T3 Chat palette for your
-theme's appearance — override at least the surfaces (`canvas`, `sidebar`,
-`surface`, `messageSurface`) and `accent` so your theme previews well.
-A `variants` block for the other appearance gets you the split light/dark card.
+- The file is parsed by T3Code's actual `parseThemeFile` — green check means
+  the theme imports cleanly into the app.
+- The `author` field must be the PR opener's GitHub username, and only a
+  theme's author may modify or delete it later (maintainers can override with
+  the `override-ownership` label).
 
-The two `themes/*.json` files currently in the repo are placeholder samples —
-remove them once real submissions exist.
+After merge, everything is automatic: CI screenshots the theme in the real
+app, publishes the assets, and redeploys the site.
+
+## How it works
+
+- **Astro static site** on Cloudflare Pages; themes are JSON files in
+  [`themes/`](themes/). The only backend is [Convex](https://convex.dev) for
+  likes (GitHub sign-in via Convex Auth; one like per theme per account).
+- **`src/vendor/t3code/`** contains `themePalette.ts` and `ThemeWireframe.tsx`
+  vendored verbatim from the MIT-licensed t3code repo, kept current daily by
+  the `sync-vendor` workflow. Validation, previews, and the site's own styling
+  (CSS `--app-theme-*` variables + `light-dark()`) all run on the app's real
+  theme engine — theme detail pages literally *wear* the theme they show.
+- **The live preview** is T3Code's demo build: the actual web app bundled
+  against an in-browser mock server. It shares the site's localStorage, so
+  pages inject a theme under T3Code's own keys and the app applies it as if
+  you'd imported it — including themes pasted into `/submit` that don't exist
+  anywhere yet.
+- **The `build-demo-assets` workflow** builds that demo bundle, photographs
+  every theme in both modes with headless Chromium, publishes everything to
+  the rolling [`demo-assets` release](../../releases/tag/demo-assets), and
+  triggers a site redeploy. Deploys just download the tarball
+  (`scripts/fetch-demo-assets.sh`) instead of rebuilding the t3code monorepo.
 
 ## Development
 
 ```bash
 npm install
-npm run dev        # site at localhost:4321 (likes disabled without Convex)
-npm run validate   # what CI runs against themes/
-npm run build      # static build to dist/
+bash scripts/fetch-demo-assets.sh   # prebuilt demo + screenshots (optional)
+npm run dev                          # localhost:4321
+npm run validate                     # what CI runs against themes/
+npm run build                        # static build to dist/
 ```
 
-### Likes (Convex)
+Without the fetched assets the site still builds — pages fall back to
+wireframe previews. `npm run shots` regenerates screenshots locally (needs the
+demo bundle); `scripts/sync-demo.sh` rebuilds the demo bundle itself from the
+t3code repo (needs pnpm).
 
-```bash
-npx convex dev     # first run: creates a project, writes convex/_generated
-```
+Likes need `PUBLIC_CONVEX_URL` in `.env.local` and a Convex dev deployment
+(`npx convex dev`). After changing anything in `convex/`, run
+`npx convex deploy` to update production.
 
-Put the deployment URL in `.env.local` as
-`PUBLIC_CONVEX_URL=https://<name>.convex.cloud`, then restart `npm run dev`.
-After changing anything in `convex/`, run `npx convex deploy` to update the
-production deployment too.
+### Production notes
 
-Liking requires GitHub sign-in (one like per theme per GitHub account, via
-[Convex Auth](https://labs.convex.dev/auth)); counts are readable anonymously.
-Per-deployment setup:
+- Host: Cloudflare Pages, build command
+  `bash scripts/fetch-demo-assets.sh && npm run build`, output `dist`, env
+  `PUBLIC_CONVEX_URL` + `NODE_VERSION=22`.
+- Convex production deployment holds the auth env (`AUTH_GITHUB_ID/SECRET`,
+  `JWT_PRIVATE_KEY`/`JWKS`, `SITE_URL`); the GitHub OAuth app's callback is
+  `https://<deployment>.convex.site/api/auth/callback/github`.
+- The `CLOUDFLARE_DEPLOY_HOOK` repo secret lets the assets workflow redeploy
+  the site when screenshots change.
 
-1. Create a GitHub OAuth app (github.com → Settings → Developer settings →
-   OAuth Apps) with callback URL
-   `https://<deployment>.convex.site/api/auth/callback/github`.
-2. `npx convex env set AUTH_GITHUB_ID <client id>` and
-   `npx convex env set AUTH_GITHUB_SECRET <client secret>`.
-3. `npx convex env set SITE_URL <where the site runs>` (e.g.
-   `http://localhost:4321` in dev) plus the `JWT_PRIVATE_KEY`/`JWKS` pair
-   (see Convex Auth's manual setup docs).
+---
 
-### Live preview (real T3Code UI in an iframe)
-
-Theme detail pages can embed T3Code's demo mode — the actual web app running
-against an in-browser mock server (from PR
-[pingdotgg/t3code#4909](https://github.com/pingdotgg/t3code/pull/4909)). Build
-it with `scripts/sync-demo.sh` (needs pnpm; ~20 MB output into
-`public/sidebar-demo`, gitignored — run it in CI/deploy rather than committing
-it). The script merges upstream main into the PR branch because the demo
-predates the theme library; once #4909 merges, point it at main (see comments
-in the script). Without the bundle the Live Preview section simply doesn't
-render.
-
-How theming works: the bundle is served from our origin, so it shares
-localStorage with the gallery. The preview button writes the theme under
-T3Code's own keys (`t3code:themes:v1`, `t3code:theme`) before mounting the
-iframe, and the app applies it exactly as if the visitor had imported it.
-
-### Theme screenshots
-
-Cards and detail pages show real screenshots of T3Code running each theme,
-captured from the demo bundle with headless Chromium:
-
-```bash
-scripts/sync-demo.sh   # once: build the demo bundle
-npm run shots          # boots the demo per theme/mode, saves public/shots/*.png
-npm run build
-```
-
-`public/shots` is gitignored. You rarely need to run this locally: the
-**Build demo assets** workflow (`build-demo-assets.yml`) does both steps in CI
-— weekly, on demand, and whenever `themes/` or the vendored files change — and
-publishes the result as a tarball on the rolling `demo-assets` release. Deploys
-just download it:
-
-```bash
-# host build command
-bash scripts/fetch-demo-assets.sh && npm run build
-```
-
-Pages fall back to the vendored `ThemeWireframe` mini preview when a shot is
-missing, so the site builds fine without the assets. Cards show the screenshot
-matching the visitor's system color scheme (hover previews the other mode),
-and the whole site — including theme detail pages with both modes — follows
-the system scheme via CSS `light-dark()`.
-
-### Vendor sync
-
-`.github/workflows/sync-vendor.yml` re-fetches the two vendored files from
-`pingdotgg/t3code@main` daily, re-runs validation and the build against them,
-and opens a PR when they changed. Run manually with `npm run sync-vendor`.
-The shims in `src/vendor/t3code/lib/` and `ThemePreviewCircles.ts` are ours
-(upstream's versions depend on private packages) — if a sync PR fails to
-build, check whether upstream added imports the shims need to cover.
-
-## Launch checklist (t3themes.com on Cloudflare Pages)
-
-Already provisioned: production Convex deployment
-`https://outgoing-canary-533.convex.cloud` (JWT keys and
-`SITE_URL=https://t3themes.com` set). Remaining manual steps:
-
-1. **GitHub OAuth app** (github.com → Settings → Developer settings → OAuth
-   Apps → New): homepage `https://t3themes.com`, callback
-   `https://outgoing-canary-533.convex.site/api/auth/callback/github`. Then:
-   `npx convex env set --prod AUTH_GITHUB_ID <id>` and
-   `npx convex env set --prod AUTH_GITHUB_SECRET <secret>`.
-   (Optional second app with callback
-   `https://fine-partridge-608.convex.site/api/auth/callback/github` +
-   `npx convex env set AUTH_GITHUB_ID/SECRET` to test sign-in locally.)
-2. **Cloudflare Pages**: connect this repo.
-   - Build command: `bash scripts/fetch-demo-assets.sh && npm run build`
-   - Build output directory: `dist`
-   - Environment variables:
-     `PUBLIC_CONVEX_URL=https://outgoing-canary-533.convex.cloud`,
-     `NODE_VERSION=22`
-   - Custom domain: t3themes.com
-3. **Deploy hook**: Pages → Settings → Builds & deployments → create a deploy
-   hook, then save its URL as the `CLOUDFLARE_DEPLOY_HOOK` repo secret
-   (`gh secret set CLOUDFLARE_DEPLOY_HOOK`). The assets workflow calls it so
-   new-theme screenshots re-deploy the site automatically.
-4. Delete the sample themes once real submissions exist.
+Not affiliated with T3 Tools. Preview components and the demo build come from
+the MIT-licensed [t3code](https://github.com/pingdotgg/t3code) repository.
