@@ -116,5 +116,7 @@ in CI after merge).
 - CI re-runs the same validation; a green check means the theme imports
   cleanly into T3Code.
 
-After merge, everything is automatic: a workflow screenshots the theme inside
-the real T3Code app and the next deploy publishes its gallery page.
+Merging is automatic: a scheduled workflow (`auto-merge-themes.yml`, every 30
+minutes) merges open PRs that change exactly one theme file with all checks
+green. After merge, a workflow screenshots the theme inside the real T3Code
+app and redeploys the site with its gallery page — no human action required.

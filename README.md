@@ -28,8 +28,11 @@ Rules enforced by CI on every PR:
   theme's author may modify or delete it later (maintainers can override with
   the `override-ownership` label).
 
-After merge, everything is automatic: CI screenshots the theme in the real
-app, publishes the assets, and redeploys the site.
+Merging is automatic too: a scheduled workflow merges any open theme PR that
+touches exactly one theme file with all checks green (maintainers can add the
+`hold` label to keep one open for manual review). After merge, CI screenshots
+the theme in the real app, publishes the assets, and redeploys the site —
+submission to live typically takes under an hour with no human in the loop.
 
 ## How it works
 

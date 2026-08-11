@@ -1,0 +1,30 @@
+name: Auto-merge theme PRs
+
+# Theme PRs that pass every check need no human judgment: the validate check
+# runs T3Code's own parser and the ownership check enforces authorship, so
+# this merges them on a schedule and kicks the screenshot pipeline. Label a
+# PR `hold` to keep it open for manual review.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: auto-merge-themes
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Merge eligible theme PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/auto-merge-themes.mjs
