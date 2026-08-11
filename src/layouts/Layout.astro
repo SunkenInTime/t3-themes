@@ -95,11 +95,11 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
   </head>
   <body class="min-h-screen antialiased">
     <header class="border-b border-border/60">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-6 py-4 sm:gap-4">
         <a href="/" class="font-display text-lg font-semibold tracking-tight">
           t3<span class="text-accent">·</span>themes
         </a>
-        <nav class="flex items-center gap-5 text-sm text-ink-muted">
+        <nav class="flex items-center gap-2 text-sm text-ink-muted sm:gap-5">
           <a
             href="https://github.com/pingdotgg/t3code"
             rel="noopener"
@@ -131,8 +131,8 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
           </button>
           <a
             href="/submit/"
-            class="rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
-            >Submit a theme</a
+            class="whitespace-nowrap rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            >Submit<span class="hidden sm:inline"> a theme</span></a
           >
         </nav>
       </div>
