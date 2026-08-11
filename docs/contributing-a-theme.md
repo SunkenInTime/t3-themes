@@ -1,8 +1,11 @@
 # Contributing a theme
 
-Step-by-step instructions for adding a T3Code theme to this gallery. Written
-to be followed exactly by a human or a coding agent. A theme contribution
-touches **one new file** and nothing else.
+**Humans: use [t3themes.com/submit](https://t3themes.com/submit)** — it
+validates your JSON with the app's own parser, previews it in the real T3Code
+UI, and opens a prefilled pull request. The rest of this document is the
+underlying contract, written to be followed exactly by a coding agent (or a
+human who prefers doing it by hand). A theme contribution touches **one new
+file** and nothing else.
 
 ## What a theme is
 

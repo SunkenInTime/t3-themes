@@ -1,0 +1,22 @@
+---
+import SubmitFlow from "../components/SubmitFlow";
+import Layout from "../layouts/Layout.astro";
+import { demoAvailable } from "../lib/shots";
+import { allThemes } from "../lib/themes";
+
+const existingIds = allThemes.map(({ definition }) => definition.id);
+---
+
+<Layout
+  title="Submit a theme · T3 Themes"
+  description="Paste your T3Code theme JSON, preview it in the real app, and open a pull request — no git required."
+>
+  <section class="max-w-2xl">
+    <h1 class="font-display text-4xl font-semibold tracking-tight">Submit your theme.</h1>
+    <p class="mt-4 text-lg text-ink-muted">
+      Paste the JSON straight from T3Code. It's validated with the app's own parser and
+      previewed in the real interface before anything leaves this page.
+    </p>
+  </section>
+  <SubmitFlow client:load existingIds={existingIds} demoReady={demoAvailable()} />
+</Layout>
