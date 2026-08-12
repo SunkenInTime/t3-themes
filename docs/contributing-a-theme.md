@@ -55,13 +55,21 @@ Validation runs the file through T3Code's own parser (vendored at
 | `id` | Lowercase letters, digits, hyphens; must start with a letter/digit; max 48 chars (`^[a-z0-9][a-z0-9-]{0,47}$`). Must not be a reserved id: `system`, `light`, `dark`, `t3-chat`, `grove`, `ocean`, `ember`, `iris`, or any `t3-*` legacy alias. |
 | `name` | Required. Display name, 48 characters or fewer. |
 | `appearance` | Required. `"light"` or `"dark"` — the theme's base mode. |
-| `colors` | Required. At least one role. Keys must be valid color roles (the full list is `THEME_COLOR_ROLES` in `src/vendor/t3code/themePalette.ts` — read it there, do not trust a hardcoded list elsewhere). Values must be hex: `#rgb`, `#rgba`, `#rrggbb`, or `#rrggbbaa`. Named colors, `rgb()`, `hsl()` are rejected. |
+| `colors` | Required. At least one role. Keys must be valid color roles (the full list is `THEME_COLOR_ROLES` in `src/vendor/t3code/themePalette.ts` — read it there, do not trust a hardcoded list elsewhere). Values must be literal CSS colors. T3Code accepts the CSS color formats supported by its Culori parser and normalizes them to canonical `oklch(...)` values at runtime. |
 | `variants` | Optional. An object keyed by the **other** appearance only (a dark theme may have `variants.light`, never `variants.dark`), containing another `colors`-shaped object. |
 | `author` | Gallery-only. Contributor's GitHub username (validated against GitHub username rules). Should match the PR author. |
 | `description` | Gallery-only. String, 200 characters or fewer. |
 
 Gallery-only fields are ignored by T3Code on import, so they are safe to keep
 in the file.
+
+Color values may use hexadecimal, named colors, or CSS functions such as
+`rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and
+`color(srgb ...)`/`color(display-p3 ...)`. Alpha is supported, including the
+`/ 50%` and `/ 0.5` forms. Values must be self-contained literal CSS colors;
+custom properties such as `var(--accent)` are rejected. The parser keeps the
+source JSON as written for copying, while previews resolve colors through the
+same canonical `oklch(...)` representation used by T3Code.
 
 ## Filename
 
