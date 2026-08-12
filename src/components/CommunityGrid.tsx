@@ -1,7 +1,7 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { anyApi } from "convex/server";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ThemeCardPreviewColors } from "../vendor/t3code/components/settings/ThemePreviewCircles";
 import { ThemeWireframe } from "../vendor/t3code/components/settings/ThemeWireframe";
 import { LikeButtonInner, getSharedConvexClient } from "./LikeButton";
@@ -12,6 +12,7 @@ export type CardData = {
   id: string;
   label: string;
   byline: string;
+  description?: string;
   modes: string;
   shotLight: string | null;
   shotDark: string | null;
@@ -22,6 +23,22 @@ export type CardData = {
 };
 
 type Sort = "likes" | "new";
+
+function normalizeSearchText(value: string): string {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
+function queryTokens(value: string): string[] {
+  return normalizeSearchText(value).trim().split(/\s+/).filter(Boolean);
+}
+
+function matchesSearch(card: CardData, tokens: string[]): boolean {
+  if (tokens.length === 0) return true;
+  const searchable = normalizeSearchText(
+    [card.label, card.byline, card.description].filter(Boolean).join(" "),
+  );
+  return tokens.every((token) => searchable.includes(token));
+}
 
 function shotClasses(mine: "light" | "dark", hasBoth: boolean): string {
   if (!hasBoth) return "h-full w-full object-cover object-left-top";
@@ -125,9 +142,14 @@ function GridWithLikes({ themes, sort }: { themes: CardData[]; sort: Sort }) {
 
 export default function CommunityGrid({ themes }: { themes: CardData[] }) {
   const [sort, setSort] = useState<Sort>("likes");
+  const [query, setQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const client = mounted ? getSharedConvexClient() : null;
+  const tokens = queryTokens(query);
+  const filteredThemes = themes.filter((card) => matchesSearch(card, tokens));
+  const hasSearchQuery = query.trim().length > 0;
 
   const sortOptions: Array<{ key: Sort; label: string }> = [
     { key: "likes", label: "Most liked" },
@@ -136,12 +158,42 @@ export default function CommunityGrid({ themes }: { themes: CardData[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-mono text-xs uppercase tracking-widest text-ink-muted">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="shrink-0 font-mono text-xs uppercase tracking-widest text-ink-muted">
           Community themes
         </h2>
+        <div className="order-3 basis-full sm:order-none sm:min-w-0 sm:basis-0 sm:flex-1">
+          <label htmlFor="theme-search" className="sr-only">
+            Search community themes
+          </label>
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              id="theme-search"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search themes"
+              autoComplete="off"
+              className="h-[30px] w-full rounded-full border border-border/60 bg-transparent px-3 pr-10 font-mono text-xs text-ink placeholder:text-ink-muted/70 [appearance:textfield] focus:border-border [&::-webkit-search-cancel-button]:appearance-none"
+            />
+            {hasSearchQuery && (
+              <button
+                type="button"
+                aria-label="Clear theme search"
+                onClick={() => {
+                  setQuery("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-lg leading-none text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
+        </div>
         <div
-          className="flex rounded-full border border-border/60 p-0.5 font-mono text-xs"
+          className="flex shrink-0 rounded-full border border-border/60 p-0.5 font-mono text-xs"
           role="group"
           aria-label="Sort themes"
         >
@@ -162,12 +214,16 @@ export default function CommunityGrid({ themes }: { themes: CardData[] }) {
           ))}
         </div>
       </div>
-      {client ? (
+      {filteredThemes.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border/60 px-4 py-8 text-center text-sm text-ink-muted">
+          No themes match <span className="text-ink">“{query.trim()}”</span>.
+        </p>
+      ) : client ? (
         <ConvexAuthProvider client={client}>
-          <GridWithLikes themes={themes} sort={sort} />
+          <GridWithLikes themes={filteredThemes} sort={sort} />
         </ConvexAuthProvider>
       ) : (
-        <Grid themes={themes} sort={sort} counts={{}} hasConvex={false} />
+        <Grid themes={filteredThemes} sort={sort} counts={{}} hasConvex={false} />
       )}
     </div>
   );

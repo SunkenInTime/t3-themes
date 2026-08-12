@@ -11,6 +11,7 @@ const cards: CardData[] = communityThemes.map((theme) => {
     id: definition.id,
     label: definition.label,
     byline: theme.author ? `by ${theme.author}` : "Community",
+    description: theme.description,
     modes: getThemeModes(definition).join(" · "),
     shotLight: themeShot(definition.id, "light"),
     shotDark: themeShot(definition.id, "dark"),
