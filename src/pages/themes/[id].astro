@@ -50,7 +50,10 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
   paletteLight={pagePalettes.light}
   paletteDark={pagePalettes.dark}
 >
-  <a href="/" class="font-mono text-xs text-ink-muted transition-colors hover:text-ink"
+  <a
+    href="/"
+    data-astro-prefetch="viewport"
+    class="font-mono text-xs text-ink-muted transition-colors hover:text-ink"
     >← all themes</a
   >
 
