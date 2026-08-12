@@ -5,6 +5,7 @@ import { defineConfig } from "astro/config";
 
 export default defineConfig({
   site: "https://t3themes.com",
+  prefetch: { prefetchAll: false },
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],

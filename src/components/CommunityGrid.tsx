@@ -15,7 +15,7 @@ export type CardData = {
   modes: string;
   shotLight: string | null;
   shotDark: string | null;
-  /** Wireframe fallback for themes whose screenshots don't exist yet. */
+  /** Wireframe underlay for screenshots while they load or when they are absent. */
   panes: Array<{ colors: ThemeCardPreviewColors; clip?: "left" | "right" }>;
   swatches: string[];
   addedAt: number;
@@ -24,24 +24,24 @@ export type CardData = {
 type Sort = "likes" | "new";
 
 function shotClasses(mine: "light" | "dark", hasBoth: boolean): string {
-  if (!hasBoth) return "h-full w-full object-cover object-left-top";
   // Show the shot matching the system scheme; hover previews the other mode.
-  const base =
-    "absolute inset-0 h-full w-full object-cover object-left-top transition-opacity duration-300";
+  const base = "absolute inset-0 h-full w-full object-cover object-left-top";
+  if (!hasBoth) return base;
+  const withTransition = `${base} transition-opacity duration-300`;
   return mine === "light"
-    ? `${base} opacity-100 group-hover:opacity-0 dark:opacity-0 dark:group-hover:opacity-100`
-    : `${base} opacity-0 group-hover:opacity-100 dark:opacity-100 dark:group-hover:opacity-0`;
+    ? `${withTransition} opacity-100 group-hover:opacity-0 dark:opacity-0 dark:group-hover:opacity-100`
+    : `${withTransition} opacity-0 group-hover:opacity-100 dark:opacity-100 dark:group-hover:opacity-0`;
 }
 
 function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasConvex: boolean }) {
   const hasBoth = Boolean(card.shotLight && card.shotDark);
   return (
     <article className="group relative overflow-hidden rounded-xl border border-border/60 bg-card transition-transform duration-200 hover:-translate-y-0.5 hover:border-border">
-      <a href={`/themes/${card.id}/`} className="block">
+      <a href={`/themes/${card.id}/`} data-astro-prefetch="hover" className="block">
         <span className="relative block aspect-[16/10] overflow-hidden border-b border-border/60">
-          {!card.shotLight && !card.shotDark && (
+          <span className="absolute inset-0">
             <ThemeWireframe className="h-full rounded-none border-0" panes={card.panes} />
-          )}
+          </span>
           {card.shotLight && (
             <img
               src={card.shotLight}

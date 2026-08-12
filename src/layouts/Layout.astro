@@ -1,6 +1,7 @@
 ---
 import "@fontsource-variable/jetbrains-mono";
 import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
 import {
   THEME_COLOR_ROLES,
   getStandardThemeColors,
@@ -47,6 +48,7 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <title>{title}</title>
+    <ClientRouter fallback="swap" />
     <script is:inline>
       // Resolve the color scheme before first paint. Preference lives in
       // localStorage ("light" | "dark"; absent = follow system). Both
@@ -54,6 +56,11 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
       // (via data-theme) key off what this sets.
       (() => {
         const KEY = "tt-scheme";
+        if (window.__scheme) {
+          window.__scheme.apply();
+          return;
+        }
+
         const root = document.documentElement;
         const media = matchMedia("(prefers-color-scheme: dark)");
         // In-memory fallback keeps the toggle working when storage is blocked.
@@ -80,6 +87,10 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
           root.style.colorScheme = mode;
           for (const listener of listeners) listener(pref);
         };
+        const onChange = (listener) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        };
         media.addEventListener("change", apply);
         // Re-assert after bfcache restores, tab switches, and any storage
         // change (including another tab toggling, or storage being cleared).
@@ -88,8 +99,9 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
         window.addEventListener("storage", (event) => {
           if (event.key === KEY || event.key === null) apply();
         });
+        document.addEventListener("astro:after-swap", apply);
+        window.__scheme = { readPref, writePref, apply, onChange };
         apply();
-        window.__scheme = { readPref, writePref, apply, onChange: (fn) => listeners.add(fn) };
       })();
     </script>
   </head>
@@ -142,31 +154,58 @@ const themeStyle = THEME_COLOR_ROLES.map((role) => {
     </main>
     <script is:inline>
       (() => {
-        const button = document.getElementById("scheme-toggle");
-        if (!button || !window.__scheme) return;
         const order = ["system", "light", "dark"];
         const labels = {
           system: "Color scheme: system (click for light)",
           light: "Color scheme: light (click for dark)",
           dark: "Color scheme: dark (click for system)",
         };
-        const render = (pref) => {
-          for (const icon of button.querySelectorAll("[data-icon]")) {
-            // toggleAttribute: SVG elements don't implement the .hidden property
-            icon.toggleAttribute("hidden", icon.dataset.icon !== pref);
-          }
-          button.setAttribute("aria-label", labels[pref]);
-          button.title = labels[pref];
+        let boundButton = null;
+        let boundScheme = null;
+        let cleanup = () => {};
+
+        const bind = () => {
+          const button = document.getElementById("scheme-toggle");
+          const scheme = window.__scheme;
+          if (button === boundButton && scheme === boundScheme) return;
+
+          cleanup();
+          boundButton = null;
+          boundScheme = null;
+          if (!button || !scheme) return;
+
+          const render = (pref) => {
+            for (const icon of button.querySelectorAll("[data-icon]")) {
+              // toggleAttribute: SVG elements don't implement the .hidden property
+              icon.toggleAttribute("hidden", icon.dataset.icon !== pref);
+            }
+            button.setAttribute("aria-label", labels[pref]);
+            button.title = labels[pref];
+          };
+          const onClick = () => {
+            const next = order[(order.indexOf(scheme.readPref()) + 1) % order.length];
+            scheme.writePref(next);
+            scheme.apply();
+          };
+
+          button.addEventListener("click", onClick);
+          const unsubscribe = scheme.onChange(render);
+          boundButton = button;
+          boundScheme = scheme;
+          cleanup = () => {
+            button.removeEventListener("click", onClick);
+            unsubscribe();
+          };
+          // Keeps the icon honest whenever the scheme re-resolves (other tabs,
+          // bfcache restores, storage changes) — not just on our own clicks.
+          render(scheme.readPref());
         };
-        button.addEventListener("click", () => {
-          const next = order[(order.indexOf(window.__scheme.readPref()) + 1) % order.length];
-          window.__scheme.writePref(next);
-          window.__scheme.apply();
-        });
-        // Keeps the icon honest whenever the scheme re-resolves (other tabs,
-        // bfcache restores, storage changes) — not just on our own clicks.
-        window.__scheme.onChange(render);
-        render(window.__scheme.readPref());
+
+        bind();
+        // The shared inline script is initialized once. Astro replaces the
+        // body during client navigation, so bind to each new toggle after the
+        // new page has loaded.
+        document.addEventListener("astro:page-load", bind);
       })();
     </script>
     <footer class="border-t border-border/60">
