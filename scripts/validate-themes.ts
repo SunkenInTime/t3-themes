@@ -38,6 +38,7 @@ function validateColorParserCompatibility(): void {
     () =>
       parseThemeFile({
         version: THEME_FILE_VERSION,
+        id: "invalid-css-color",
         name: "Invalid CSS Color",
         appearance: "light",
         colors: { accent: "var(--accent)" },
