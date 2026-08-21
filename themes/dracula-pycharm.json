@@ -4,7 +4,7 @@
   "name": "Dracula PyCharm",
   "appearance": "dark",
   "author": "YanivZalach",
-  "description": "Pycharm Dracula Theme",
+  "description": "PyCharm Dracula Theme",
   "colors": {
     "canvas": "oklch(0.204627 0 0)",
     "chrome": "oklch(0.28908 0 0)",
