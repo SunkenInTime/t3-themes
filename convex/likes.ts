@@ -33,6 +33,24 @@ export const counts = query({
   },
 });
 
+export const state = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    const likes = await ctx.db.query("likes").collect();
+    const counts: Record<string, number> = {};
+    const likedThemeIds: string[] = [];
+
+    for (const like of likes) {
+      counts[like.themeId] = (counts[like.themeId] ?? 0) + 1;
+      if (like.userId === userId) likedThemeIds.push(like.themeId);
+    }
+
+    return { counts, likedThemeIds };
+  },
+});
+
+// Kept during the rollout so tabs running an older build do not break.
 export const count = query({
   args: { themeId: v.string() },
   handler: async (ctx, { themeId }) => {
@@ -44,6 +62,7 @@ export const count = query({
   },
 });
 
+// Kept during the rollout so tabs running an older build do not break.
 export const isLiked = query({
   args: { themeId: v.string() },
   handler: async (ctx, { themeId }) => {

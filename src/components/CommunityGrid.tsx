@@ -50,7 +50,17 @@ function shotClasses(mine: "light" | "dark", hasBoth: boolean): string {
     : `${withTransition} opacity-0 group-hover:opacity-100 dark:opacity-100 dark:group-hover:opacity-0`;
 }
 
-function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasConvex: boolean }) {
+function Card({
+  card,
+  likes,
+  liked,
+  hasConvex,
+}: {
+  card: CardData;
+  likes: number | undefined;
+  liked: boolean;
+  hasConvex: boolean;
+}) {
   const hasBoth = Boolean(card.shotLight && card.shotDark);
   return (
     <article className="group relative overflow-hidden rounded-xl border border-border/60 bg-card transition-transform duration-200 hover:-translate-y-0.5 hover:border-border">
@@ -96,14 +106,14 @@ function Card({ card, likes, hasConvex }: { card: CardData; likes: number; hasCo
             </span>
             <span className="font-mono text-[11px] text-ink-muted">
               {card.modes}
-              {likes > 0 && ` · ♥ ${likes}`}
+              {likes !== undefined && likes > 0 && ` · ♥ ${likes}`}
             </span>
           </span>
         </span>
       </a>
       {hasConvex && (
         <div className="absolute right-3 top-3 z-10">
-          <LikeButtonInner themeId={card.id} />
+          <LikeButtonInner themeId={card.id} count={likes} liked={liked} />
         </div>
       )}
     </article>
@@ -114,11 +124,13 @@ function Grid({
   themes,
   sort,
   counts,
+  likedThemeIds,
   hasConvex,
 }: {
   themes: CardData[];
   sort: Sort;
   counts: Record<string, number>;
+  likedThemeIds: ReadonlySet<string>;
   hasConvex: boolean;
 }) {
   const sorted = [...themes].sort((a, b) =>
@@ -129,15 +141,33 @@ function Grid({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {sorted.map((card) => (
-        <Card key={card.id} card={card} likes={counts[card.id] ?? 0} hasConvex={hasConvex} />
+        <Card
+          key={card.id}
+          card={card}
+          likes={counts[card.id]}
+          liked={likedThemeIds.has(card.id)}
+          hasConvex={hasConvex}
+        />
       ))}
     </div>
   );
 }
 
 function GridWithLikes({ themes, sort }: { themes: CardData[]; sort: Sort }) {
-  const counts = (useQuery(anyApi.likes.counts, {}) ?? {}) as Record<string, number>;
-  return <Grid themes={themes} sort={sort} counts={counts} hasConvex />;
+  const state = useQuery(anyApi.likes.state, {}) as
+    | { counts: Record<string, number>; likedThemeIds: string[] }
+    | undefined;
+  const counts = state?.counts ?? {};
+  const likedThemeIds = new Set(state?.likedThemeIds ?? []);
+  return (
+    <Grid
+      themes={themes}
+      sort={sort}
+      counts={counts}
+      likedThemeIds={likedThemeIds}
+      hasConvex
+    />
+  );
 }
 
 export default function CommunityGrid({ themes }: { themes: CardData[] }) {
@@ -223,7 +253,13 @@ export default function CommunityGrid({ themes }: { themes: CardData[] }) {
           <GridWithLikes themes={filteredThemes} sort={sort} />
         </ConvexAuthProvider>
       ) : (
-        <Grid themes={filteredThemes} sort={sort} counts={{}} hasConvex={false} />
+        <Grid
+          themes={filteredThemes}
+          sort={sort}
+          counts={{}}
+          likedThemeIds={new Set()}
+          hasConvex={false}
+        />
       )}
     </div>
   );

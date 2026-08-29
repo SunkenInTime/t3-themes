@@ -17,11 +17,17 @@ export function getSharedConvexClient(): ConvexReactClient | null {
 }
 
 /** Like button for use inside an existing ConvexAuthProvider (e.g. the grid). */
-export function LikeButtonInner({ themeId }: { themeId: string }) {
+export function LikeButtonInner({
+  themeId,
+  count,
+  liked,
+}: {
+  themeId: string;
+  count: number | undefined;
+  liked: boolean;
+}) {
   const { isAuthenticated } = useConvexAuth();
   const { signIn } = useAuthActions();
-  const count = useQuery(anyApi.likes.count, { themeId }) as number | undefined;
-  const liked = useQuery(anyApi.likes.isLiked, { themeId }) as boolean | undefined;
   const toggle = useMutation(anyApi.likes.toggle);
 
   return (
@@ -46,6 +52,20 @@ export function LikeButtonInner({ themeId }: { themeId: string }) {
   );
 }
 
+function LikeButtonWithState({ themeId }: { themeId: string }) {
+  const state = useQuery(anyApi.likes.state, {}) as
+    | { counts: Record<string, number>; likedThemeIds: string[] }
+    | undefined;
+
+  return (
+    <LikeButtonInner
+      themeId={themeId}
+      count={state?.counts[themeId]}
+      liked={state?.likedThemeIds.includes(themeId) ?? false}
+    />
+  );
+}
+
 export default function LikeButton({ themeId }: { themeId: string }) {
   // Convex client + auth state are browser-only; render nothing during
   // Astro's static prerender and mount on the client.
@@ -57,7 +77,7 @@ export default function LikeButton({ themeId }: { themeId: string }) {
   if (!client) return null;
   return (
     <ConvexAuthProvider client={client}>
-      <LikeButtonInner themeId={themeId} />
+      <LikeButtonWithState themeId={themeId} />
     </ConvexAuthProvider>
   );
 }
