@@ -4,7 +4,7 @@
   "name": "Cañadas + Alonso",
   "appearance": "light",
   "author": "XelaJr",
-  "description": "Editorial institutional palette for Cañadas y Alonso de la Sierra (C+A): deep petrol & Atlantic blues on calm slate-mineral neutrals, tuned to WCAG AAA for all-day legal and technical work.",
+  "description": "Editorial institutional palette for Cañadas y Alonso de la Sierra (C+A): deep petrol & Atlantic blues on calm slate-mineral neutrals, crafted for all-day legal and technical work.",
   "colors": {
     "canvas": "#f8fafb",
     "chrome": "#f8fafb",
@@ -35,7 +35,7 @@
     "errorForeground": "#8c2b2f",
     "errorSurface": "#fcf0f0",
     "warning": "#c8881f",
-    "warningForeground": "#78551a",
+    "warningForeground": "#6b4a14",
     "warningSurface": "#fbf4e6",
     "update": "#1e4e7c",
     "updateForeground": "#143654",
