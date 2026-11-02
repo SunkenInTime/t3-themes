@@ -1,6 +1,7 @@
 // Re-fetches the vendored T3Code files from upstream. Run by the scheduled
 // sync-vendor workflow; safe to run locally too. Only files vendored verbatim
-// are listed here — the shims (lib/utils.ts, ThemePreviewCircles.ts) are ours.
+// are listed here — the shims (lib/utils.ts, ThemePreviewCircles.ts,
+// shims/contracts.ts, rpc/atomRegistry.ts, state/server.ts) are ours.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,14 @@ const FILES = [
   {
     remote: `${UPSTREAM}/apps/web/src/themePalette.ts`,
     local: "src/vendor/t3code/themePalette.ts",
+  },
+  {
+    remote: `${UPSTREAM}/packages/shared/src/themePalettes.ts`,
+    local: "src/vendor/t3code/shared/themePalettes.ts",
+  },
+  {
+    remote: `${UPSTREAM}/apps/web/src/lib/contextChipAccents.ts`,
+    local: "src/vendor/t3code/lib/contextChipAccents.ts",
   },
   {
     remote: `${UPSTREAM}/apps/web/src/components/settings/ThemeWireframe.tsx`,
