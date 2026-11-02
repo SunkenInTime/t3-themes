@@ -17,7 +17,9 @@ ThemeFile v1 format plus `author`/`description` fields, filename matching the
 - `themes/` — theme JSON files (the content of the gallery)
 - `src/vendor/t3code/` — files vendored verbatim from the t3code repo, synced
   daily by `.github/workflows/sync-vendor.yml`. **Never edit by hand**, except
-  the local shims `lib/utils.ts` and `ThemePreviewCircles.ts` which are ours.
+  the local shims `lib/utils.ts`, `ThemePreviewCircles.ts`,
+  `shims/contracts.ts`, `rpc/atomRegistry.ts` and `state/server.ts` which are
+  ours. `@t3tools/*` imports resolve through `paths` in `tsconfig.json`.
 - `src/lib/themes.ts` — loads built-in + community themes at build time
 - `src/pages/` — index (gallery grid) and `themes/[id]` (detail pages)
 - `scripts/` — `validate-themes.ts` (CI validation), `sync-vendor.mjs`,
@@ -42,9 +44,9 @@ gracefully when they're absent, so most site work doesn't need them.
 
 ## Constraints
 
-- `effect` is pinned to the exact version t3code uses (currently
-  `4.0.0-beta.103`) — the vendored `themePalette.ts` depends on Effect v4 APIs.
-  Do not bump it independently.
+- `effect` is pinned to the exact version t3code uses (currently `4.0.5`) —
+  the vendored `themePalette.ts` depends on Effect v4 APIs. Do not bump it
+  independently.
 - The site styles itself with T3Code's `--app-theme-*` CSS variables (see
   `src/layouts/Layout.astro`); prefer the mapped Tailwind tokens
   (`text-ink`, `bg-surface`, `border-border`, `text-accent`, …) over raw hex.

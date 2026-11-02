@@ -2,7 +2,11 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    "paths": {
+      "@t3tools/contracts": ["./src/vendor/t3code/shims/contracts.ts"],
+      "@t3tools/shared/themePalettes": ["./src/vendor/t3code/shared/themePalettes.ts"]
+    }
   },
   "include": ["src/**/*", "scripts/**/*"],
   "exclude": ["dist", "node_modules", "convex"]
