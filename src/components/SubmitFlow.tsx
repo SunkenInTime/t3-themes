@@ -107,6 +107,7 @@ export default function SubmitFlow({
       ...(description.trim() ? { description: description.trim() } : {}),
       colors: raw.colors,
       ...(raw.variants ? { variants: raw.variants } : {}),
+      ...(draft.definition.css ? { css: draft.definition.css } : {}),
     };
     const json = `${JSON.stringify(ordered, null, 2)}\n`;
     const url = `https://github.com/${REPO}/new/main?filename=${encodeURIComponent(

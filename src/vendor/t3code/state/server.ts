@@ -5,6 +5,6 @@ import { Atom } from "effect/reactivity";
 
 const EMPTY_ENVIRONMENT_THEMES: ReadonlyArray<EnvironmentTheme> = [];
 
-export const primaryServerEnvironmentThemesAtom = Atom.make(
+export const themeServerEnvironmentThemesAtom = Atom.make(
   (): ReadonlyArray<EnvironmentTheme> => EMPTY_ENVIRONMENT_THEMES,
-).pipe(Atom.withLabel("web-primary-server-environment-themes"));
+).pipe(Atom.withLabel("web-theme-server-environment-themes"));

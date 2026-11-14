@@ -5,7 +5,11 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseThemeFile, THEME_FILE_VERSION } from "../src/vendor/t3code/themePalette";
+import {
+  parseThemeFile,
+  serializeThemeFile,
+  THEME_FILE_VERSION,
+} from "../src/vendor/t3code/themePalette";
 
 const themesDir = fileURLToPath(new URL("../themes", import.meta.url));
 const GITHUB_USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
@@ -22,6 +26,7 @@ function validateColorParserCompatibility(): void {
       accent: "rebeccapurple",
       focus: "color(display-p3 0.2 0.4 1)",
     },
+    css: '[data-workspace-area="conversation"] { background: coral; }',
     variants: {
       dark: {
         accent: "hsl(210 100% 50% / 25%)",
@@ -30,6 +35,17 @@ function validateColorParserCompatibility(): void {
   });
 
   assert.match(theme.colors.canvas, /^oklch\(.+ \/ 0\.5\)$/);
+  assert.equal(
+    JSON.parse(serializeThemeFile(theme)).css,
+    '[data-workspace-area="conversation"] { background: coral; }',
+    "Theme import/export must preserve decorative CSS",
+  );
+  for (const css of [42, "x".repeat(20_001)]) {
+    assert.throws(
+      () => parseThemeFile({ ...JSON.parse(serializeThemeFile(theme)), css }),
+      /Theme CSS must be text/,
+    );
+  }
   assert.match(theme.colors.border, /^oklch\(/);
   assert.match(theme.colors.accent, /^oklch\(/);
   assert.match(theme.colors.focus, /^oklch\(/);
