@@ -4,7 +4,7 @@
   "name": "Glacier Slate Coral",
   "appearance": "dark",
   "author": "parthashirolkar",
-  "description": "A muted slate aquarium with colorful corals, drifting bubbles, and occasional passing fish. Respects reduced motion.",
+  "description": "Muted slate palette. Aquarium animation requires an external T3 Code consumer with custom theme CSS support; this gallery's parser and install/update paths apply the palette only.",
   "colors": {
     "canvas": "#152123",
     "chrome": "#121c1e",
