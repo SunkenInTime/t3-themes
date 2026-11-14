@@ -1,7 +1,8 @@
 // Auto-merges theme PRs that need no human judgment: exactly one
 // themes/*.json file, every check green (validate = T3Code's own parser,
 // ownership = author enforcement), a small content screen on the metadata,
-// and a short grace period. Add the `hold` label to keep a PR open for
+// and a short grace period. Themes with CSS require manual review.
+// Add the `hold` label to keep a PR open for
 // manual review. Runs from .github/workflows/auto-merge-themes.yml.
 import { execFileSync } from "node:child_process";
 
@@ -79,6 +80,7 @@ for (const number of prNumbers) {
   } catch {
     skip("could not read theme file"); continue;
   }
+  if (theme.css !== undefined) { skip("custom CSS requires manual review"); continue; }
   const visible = [theme.id, theme.name, theme.description, theme.author].join(" ");
   if (DENY.test(visible)) { skip("content screen — left for manual review"); continue; }
 

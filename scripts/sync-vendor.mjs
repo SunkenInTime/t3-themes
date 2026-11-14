@@ -9,6 +9,14 @@ import { fileURLToPath } from "node:url";
 const UPSTREAM = "https://raw.githubusercontent.com/pingdotgg/t3code/main";
 const FILES = [
   {
+    remote: `${UPSTREAM}/apps/web/src/themeCss.ts`,
+    local: "src/vendor/t3code/themeCss.ts",
+  },
+  {
+    remote: `${UPSTREAM}/packages/shared/src/themeCss.ts`,
+    local: "src/vendor/t3code/shared/themeCss.ts",
+  },
+  {
     remote: `${UPSTREAM}/apps/web/src/themePalette.ts`,
     local: "src/vendor/t3code/themePalette.ts",
   },

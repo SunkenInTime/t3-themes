@@ -5,7 +5,13 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseThemeFile, THEME_FILE_VERSION } from "../src/vendor/t3code/themePalette";
+import { themeSubmissionLink } from "../src/lib/themeSubmission";
+import { themeCssLoadsRemoteFiles } from "../src/vendor/t3code/shared/themeCss";
+import {
+  parseThemeFile,
+  serializeThemeFile,
+  THEME_FILE_VERSION,
+} from "../src/vendor/t3code/themePalette";
 
 const themesDir = fileURLToPath(new URL("../themes", import.meta.url));
 const GITHUB_USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
@@ -22,6 +28,7 @@ function validateColorParserCompatibility(): void {
       accent: "rebeccapurple",
       focus: "color(display-p3 0.2 0.4 1)",
     },
+    css: '[data-workspace-area="conversation"] { background: coral; }',
     variants: {
       dark: {
         accent: "hsl(210 100% 50% / 25%)",
@@ -30,6 +37,17 @@ function validateColorParserCompatibility(): void {
   });
 
   assert.match(theme.colors.canvas, /^oklch\(.+ \/ 0\.5\)$/);
+  assert.equal(
+    JSON.parse(serializeThemeFile(theme)).css,
+    '[data-workspace-area="conversation"] { background: coral; }',
+    "Theme import/export must preserve decorative CSS",
+  );
+  for (const css of [42, "x".repeat(20_001)]) {
+    assert.throws(
+      () => parseThemeFile({ ...JSON.parse(serializeThemeFile(theme)), css }),
+      /Theme CSS must be text/,
+    );
+  }
   assert.match(theme.colors.border, /^oklch\(/);
   assert.match(theme.colors.accent, /^oklch\(/);
   assert.match(theme.colors.focus, /^oklch\(/);
@@ -50,6 +68,14 @@ function validateColorParserCompatibility(): void {
 const entries = (await readdir(themesDir)).filter((name) => name.endsWith(".json")).sort();
 const errors: string[] = [];
 const seenIds = new Set<string>();
+
+const smallSubmission = themeSubmissionLink("themes/small.json", '{"name":"Small"}');
+assert.equal(new URL(smallSubmission.url).searchParams.get("value"), '{"name":"Small"}');
+assert.equal(smallSubmission.contentsPrefilled, true);
+const largeSubmission = themeSubmissionLink("themes/animated.json", "🪸".repeat(2_000));
+assert.equal(new URL(largeSubmission.url).searchParams.get("filename"), "themes/animated.json");
+assert.equal(new URL(largeSubmission.url).searchParams.has("value"), false);
+assert.equal(largeSubmission.contentsPrefilled, false);
 
 try {
   validateColorParserCompatibility();
@@ -84,6 +110,9 @@ for (const fileName of entries) {
   seenIds.add(themeId);
 
   const record = data as Record<string, unknown>;
+  if (typeof record.css === "string" && themeCssLoadsRemoteFiles(record.css)) {
+    errors.push(`${label}: CSS must not load external files; embed images with data: URLs`);
+  }
   if (record.author !== undefined) {
     if (typeof record.author !== "string" || !GITHUB_USERNAME_PATTERN.test(record.author)) {
       errors.push(`${label}: "author" must be a GitHub username`);
