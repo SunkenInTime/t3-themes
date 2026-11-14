@@ -6,6 +6,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { themeSubmissionLink } from "../src/lib/themeSubmission";
+import { themeCssLoadsRemoteFiles } from "../src/vendor/t3code/shared/themeCss";
 import {
   parseThemeFile,
   serializeThemeFile,
@@ -109,6 +110,9 @@ for (const fileName of entries) {
   seenIds.add(themeId);
 
   const record = data as Record<string, unknown>;
+  if (typeof record.css === "string" && themeCssLoadsRemoteFiles(record.css)) {
+    errors.push(`${label}: CSS must not load external files; embed images with data: URLs`);
+  }
   if (record.author !== undefined) {
     if (typeof record.author !== "string" || !GITHUB_USERNAME_PATTERN.test(record.author)) {
       errors.push(`${label}: "author" must be a GitHub username`);

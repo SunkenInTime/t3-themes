@@ -64,6 +64,10 @@ Validation runs the file through T3Code's own parser (vendored at
 Gallery-only fields are ignored by T3Code on import, so they are safe to keep
 in the file.
 
+Themes containing `css` require manual review and are excluded from automatic
+merging. CI rejects CSS that loads external files, since clients block those
+loads and would render an incomplete theme.
+
 Color values may use hexadecimal, named colors, or CSS functions such as
 `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and
 `color(srgb ...)`/`color(display-p3 ...)`. Alpha is supported, including the
