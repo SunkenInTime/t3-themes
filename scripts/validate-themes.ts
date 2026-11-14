@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { themeSubmissionLink } from "../src/lib/themeSubmission";
 import {
   parseThemeFile,
   serializeThemeFile,
@@ -66,6 +67,14 @@ function validateColorParserCompatibility(): void {
 const entries = (await readdir(themesDir)).filter((name) => name.endsWith(".json")).sort();
 const errors: string[] = [];
 const seenIds = new Set<string>();
+
+const smallSubmission = themeSubmissionLink("themes/small.json", '{"name":"Small"}');
+assert.equal(new URL(smallSubmission.url).searchParams.get("value"), '{"name":"Small"}');
+assert.equal(smallSubmission.contentsPrefilled, true);
+const largeSubmission = themeSubmissionLink("themes/animated.json", "🪸".repeat(2_000));
+assert.equal(new URL(largeSubmission.url).searchParams.get("filename"), "themes/animated.json");
+assert.equal(new URL(largeSubmission.url).searchParams.has("value"), false);
+assert.equal(largeSubmission.contentsPrefilled, false);
 
 try {
   validateColorParserCompatibility();

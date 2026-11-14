@@ -10,8 +10,8 @@ import {
   type ThemeDefinition,
 } from "../vendor/t3code/themePalette";
 import LivePreview from "./LivePreview";
+import { themeSubmissionLink } from "../lib/themeSubmission";
 
-const REPO = "SunkenInTime/t3-themes";
 const GITHUB_USERNAME = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
 
 type Draft =
@@ -110,10 +110,7 @@ export default function SubmitFlow({
       ...(draft.definition.css ? { css: draft.definition.css } : {}),
     };
     const json = `${JSON.stringify(ordered, null, 2)}\n`;
-    const url = `https://github.com/${REPO}/new/main?filename=${encodeURIComponent(
-      draft.fileName,
-    )}&value=${encodeURIComponent(json)}`;
-    return { json, url };
+    return { json, ...themeSubmissionLink(draft.fileName, json) };
   }, [draft, author, description, authorValid, descriptionValid]);
 
   const readFile = (file: File | undefined) => {
@@ -251,7 +248,10 @@ export default function SubmitFlow({
               )}
             </div>
             <p className="mt-3 max-w-xl text-sm text-ink-muted">
-              GitHub opens with the file name and contents already filled in — sign in, click
+              {submission?.contentsPrefilled
+                ? "GitHub opens with the file name and contents already filled in."
+                : "Copy final JSON first. GitHub opens with the file name filled in; paste the JSON into its file editor."}
+              {" "}Sign in, click
               <span className="text-ink"> Propose new file</span>, then
               <span className="text-ink"> Create pull request</span>. CI re-checks everything;
               once merged, your theme is photographed in the real app and deployed
