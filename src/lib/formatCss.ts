@@ -1,58 +1,34 @@
-// Breaks minified theme CSS into one declaration per line for the "View CSS"
-// panel on theme pages. Display only: what users import is the theme JSON,
-// unchanged. Strings, comments and anything inside parentheses (data: URLs,
-// var() fallbacks) pass through untouched.
-export function formatCss(css: string): string {
-  let out = "";
-  let depth = 0;
-  let parens = 0;
-  let i = 0;
-  const indent = () => "  ".repeat(depth);
-  const trimEnd = () => {
-    out = out.replace(/[ \t]+$/, "");
-  };
+// Lays out theme CSS one declaration per line for the "View CSS" panel on
+// theme pages. Display only: what users import is the theme JSON, unchanged.
+// postcss does the parsing, so strings, escapes, comments and url() contents
+// are handled as CSS defines them; this only rewrites the whitespace between
+// nodes and never touches a selector, at-rule prelude or value.
+import postcss, { type ChildNode, type Container } from "postcss";
 
-  while (i < css.length) {
-    const ch = css[i]!;
-    if (ch === "/" && css[i + 1] === "*") {
-      const end = css.indexOf("*/", i + 2);
-      const stop = end === -1 ? css.length : end + 2;
-      out += css.slice(i, stop);
-      if (parens === 0) out += `\n${indent()}`;
-      i = stop;
-      continue;
+const onlyWhitespace = (raw: unknown) => typeof raw !== "string" || /^[ \t\n\r\f]*$/.test(raw);
+
+function layout(container: Container, depth: number): void {
+  const indent = "  ".repeat(depth);
+  container.each((node: ChildNode) => {
+    node.raws.before = container.type === "root" && node === container.first ? "" : `\n${indent}`;
+    if (node.type === "rule" || node.type === "atrule") {
+      if (onlyWhitespace(node.raws.between)) node.raws.between = node.type === "rule" ? " " : node.nodes ? " " : "";
+      if (node.nodes) {
+        layout(node, depth + 1);
+        node.raws.after = `\n${indent}`;
+        node.raws.semicolon = true;
+      }
     }
-    if (ch === '"' || ch === "'") {
-      let j = i + 1;
-      while (j < css.length && css[j] !== ch) j += css[j] === "\\" ? 2 : 1;
-      out += css.slice(i, j + 1);
-      i = j + 1;
-      continue;
-    }
-    if (ch === "(") parens++;
-    if (ch === ")") parens = Math.max(0, parens - 1);
-    if (parens > 0) {
-      out += ch;
-      i++;
-      continue;
-    }
-    if (ch === "{") {
-      trimEnd();
-      depth++;
-      out += ` {\n${indent()}`;
-    } else if (ch === ";") {
-      out += `;\n${indent()}`;
-    } else if (ch === "}") {
-      depth = Math.max(0, depth - 1);
-      out = out.replace(/\s+$/, "");
-      out += `\n${indent()}}\n${indent()}`;
-    } else if (/\s/.test(ch)) {
-      // Collapse whitespace; the breaks above replace the original layout.
-      if (!/\s$/.test(out) && out.length > 0) out += " ";
-    } else {
-      out += ch;
-    }
-    i++;
+  });
+}
+
+export function formatCss(css: string): string {
+  try {
+    const root = postcss.parse(css);
+    layout(root, 0);
+    return `${root.toString()}\n`;
+  } catch {
+    // Not parseable by postcss: show it exactly as written.
+    return css;
   }
-  return out.replace(/\n[ \t]*\n+/g, "\n").trim() + "\n";
 }
