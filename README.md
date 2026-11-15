@@ -45,7 +45,9 @@ submission to live typically takes under an hour with no human in the loop.
   (CSS `--app-theme-*` variables + `light-dark()`) all run on the app's real
   theme engine — theme detail pages literally *wear* the theme they show.
 - **The live preview** is T3Code's demo build: the actual web app bundled
-  against an in-browser mock server. It shares the site's localStorage, so
+  against an in-browser mock server. Upstream has no demo mode, so this repo
+  keeps one as a patch (`scripts/demo/t3code-demo.patch`) on a pinned t3code
+  commit; `scripts/sync-demo.sh` says how to move the pin. It shares the site's localStorage, so
   pages inject a theme under T3Code's own keys and the app applies it as if
   you'd imported it — including themes pasted into `/submit` that don't exist
   anywhere yet.
@@ -68,7 +70,7 @@ npm run build                        # static build to dist/
 Without the fetched assets the site still builds — pages fall back to
 wireframe previews. `npm run shots` regenerates screenshots locally (needs the
 demo bundle); `scripts/sync-demo.sh` rebuilds the demo bundle itself from the
-t3code repo (needs pnpm).
+pinned t3code commit (needs the Node version that commit pins, currently 26.13.1).
 
 Likes need `PUBLIC_CONVEX_URL` in `.env.local` and a Convex dev deployment
 (`npx convex dev`). After changing anything in `convex/`, run

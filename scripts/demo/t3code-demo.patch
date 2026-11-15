@@ -1,0 +1,998 @@
+diff --git a/apps/web/demo.html b/apps/web/demo.html
+new file mode 100644
+index 0000000000..db0beae7ed
+--- /dev/null
++++ b/apps/web/demo.html
+@@ -0,0 +1,45 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta
++      name="viewport"
++      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
++    />
++    <meta name="robots" content="noindex" />
++    <style>
++      html,
++      body,
++      #root {
++        width: 100%;
++        height: 100%;
++        margin: 0;
++      }
++
++      body {
++        background: #ffffff;
++        color: #262626;
++        font-family:
++          "Inter Variable",
++          -apple-system,
++          BlinkMacSystemFont,
++          "Segoe UI",
++          system-ui,
++          sans-serif;
++      }
++
++      /* Until the app applies the stored theme, match the OS so the frame does not flash. */
++      @media (prefers-color-scheme: dark) {
++        body {
++          background: #161616;
++          color: #f5f5f5;
++        }
++      }
++    </style>
++    <title>T3 Code demo</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/demo/main.tsx"></script>
++  </body>
++</html>
+diff --git a/apps/web/package.json b/apps/web/package.json
+index fd3aca76ad..ccc14a92d3 100644
+--- a/apps/web/package.json
++++ b/apps/web/package.json
+@@ -11,7 +11,8 @@
+     "i18n:generate": "gt generate",
+     "preview": "vp preview",
+     "test": "vp test run --passWithNoTests --project unit --project browser",
+-    "i18n:translate": "gt translate"
++    "i18n:translate": "gt translate",
++    "build:demo": "vp build --config vite.demo.config.ts"
+   },
+   "dependencies": {
+     "@base-ui/react": "^1.9.0",
+diff --git a/apps/web/src/appInit.tsx b/apps/web/src/appInit.tsx
+index faa71137db..f5c7b45558 100644
+--- a/apps/web/src/appInit.tsx
++++ b/apps/web/src/appInit.tsx
+@@ -5,7 +5,11 @@ import {
+ } from "@t3tools/client-runtime/environment";
+ import type { ScopedThreadRef } from "@t3tools/contracts";
+ import type { ClientSettings } from "@t3tools/contracts/settings";
+-import { createBrowserHistory, createHashHistory } from "@tanstack/react-router";
++import {
++  createBrowserHistory,
++  createHashHistory,
++  type RouterHistory,
++} from "@tanstack/react-router";
+ import * as Schema from "effect/Schema";
+ 
+ import { applyAppearanceContrast } from "./appearanceContrast";
+@@ -245,12 +249,14 @@ function startThreadOverlayRetention(router: AppRouter): void {
+  * Starts every app-lifetime service once, before the first render, and returns the router.
+  * They run for the life of the page, so their disposers are dropped here.
+  */
+-export function startAppServices(): AppRouter {
++export function startAppServices(history?: RouterHistory): AppRouter {
+   // Ahead of the history: the provider auth code must leave the address before anything reads it.
+   startProviderAuthDelivery();
+ 
+   // Electron loads the app from a file-backed shell, so hash history avoids path resolution issues.
+-  const router = getRouter(isElectron ? createHashHistory() : createBrowserHistory());
++  const router = getRouter(
++    history ?? (isElectron ? createHashHistory() : createBrowserHistory()),
++  );
+ 
+   if (isElectron) {
+     syncDocumentElectronPlatformClasses(navigator.platform);
+diff --git a/apps/web/src/demo/fixtures.test.ts b/apps/web/src/demo/fixtures.test.ts
+new file mode 100644
+index 0000000000..1d9a77afb4
+--- /dev/null
++++ b/apps/web/src/demo/fixtures.test.ts
+@@ -0,0 +1,13 @@
++import { describe, expect, it } from "vite-plus/test";
++
++import { DEMO_THREAD_ID, demoServerConfig, demoShellSnapshot, demoThreadProjection } from "./fixtures";
++
++// The fixtures decode through the live contract schemas on import; this fails
++// with the offending field when an upstream schema change breaks them.
++describe("demo fixtures", () => {
++  it("decode against the current contracts", () => {
++    expect(demoServerConfig.providers.length).toBeGreaterThan(0);
++    expect(demoShellSnapshot.threads.some((thread) => thread.id === DEMO_THREAD_ID)).toBe(true);
++    expect(demoThreadProjection(DEMO_THREAD_ID)?.visibleTurnItems).toHaveLength(4);
++  });
++});
+diff --git a/apps/web/src/demo/fixtures.ts b/apps/web/src/demo/fixtures.ts
+new file mode 100644
+index 0000000000..39ffe7822d
+--- /dev/null
++++ b/apps/web/src/demo/fixtures.ts
+@@ -0,0 +1,356 @@
++// Demo data for the static theme-preview build: one environment with a few
++// projects and threads, and one conversation that exercises the main chat
++// surfaces (markdown, inline code, code blocks, lists). Every value is decoded
++// through the real contract schemas, so a shape that drifts upstream fails
++// loudly here instead of rendering wrong.
++import {
++  ExecutionEnvironmentDescriptor,
++  ORCHESTRATION_PROTOCOL_VERSION,
++  OrchestrationV2ShellSnapshot,
++  OrchestrationV2ThreadProjection,
++  ServerConfig,
++} from "@t3tools/contracts";
++import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
++import * as Schema from "effect/Schema";
++
++// Fixtures are written as wire JSON (ISO date strings), like a real server sends.
++const decodeJson = <S extends Schema.Top>(schema: S) =>
++  Schema.decodeUnknownSync(Schema.toCodecJson(schema));
++
++export const DEMO_ENVIRONMENT_ID = "demo";
++export const DEMO_THREAD_ID = "thread-theme-css";
++
++const now = Date.now();
++const minutesAgo = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
++
++const PROVIDER = "claudeAgent";
++const MODEL = "claude-opus-5-5";
++
++export const demoDescriptor = decodeJson(ExecutionEnvironmentDescriptor)({
++  environmentId: DEMO_ENVIRONMENT_ID,
++  label: "MacBook Pro",
++  platform: { os: "darwin", arch: "arm64" },
++  serverVersion: import.meta.env.APP_VERSION || "0.0.0",
++  // The client refuses servers on another protocol; the demo speaks the bundled one.
++  orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
++  capabilities: { repositoryIdentity: false, threadSettlement: true, threadSnooze: true },
++});
++
++export const demoServerConfig: ServerConfig = {
++  ...decodeJson(ServerConfig)({
++    environment: Schema.encodeSync(Schema.toCodecJson(ExecutionEnvironmentDescriptor))(demoDescriptor),
++    auth: {
++      policy: "unsafe-no-auth",
++      bootstrapMethods: [],
++      sessionMethods: [],
++      sessionCookieName: "t3-demo-session",
++    },
++    cwd: "~/code/t3code",
++    keybindingsConfigPath: "~/.t3/keybindings.json",
++    keybindings: [],
++    issues: [],
++    providers: [
++      {
++        instanceId: PROVIDER,
++        driver: PROVIDER,
++        displayName: "Claude",
++        enabled: true,
++        installed: true,
++        version: "2.3.0",
++        status: "ready",
++        auth: { status: "authenticated", label: "Claude Max" },
++        checkedAt: minutesAgo(1),
++        models: [{ slug: MODEL, name: "Opus 5.5", isCustom: false, capabilities: null }],
++      },
++    ],
++    availableEditors: [],
++    observability: {
++      logsDirectoryPath: "~/.t3/logs",
++      localTracingEnabled: false,
++      otlpTracesEnabled: false,
++      otlpMetricsEnabled: false,
++    },
++    settings: {},
++  }),
++  keybindings: DEFAULT_RESOLVED_KEYBINDINGS,
++};
++
++// ---------------------------------------------------------------------------
++// Projects and thread rows
++// ---------------------------------------------------------------------------
++
++const projects = [
++  { id: "project-t3code", title: "t3code", workspaceRoot: "~/code/t3code" },
++  { id: "project-site", title: "marketing-site", workspaceRoot: "~/code/marketing-site" },
++  { id: "project-mobile", title: "mobile-app", workspaceRoot: "~/code/mobile-app" },
++].map((project) => ({
++  ...project,
++  repositoryIdentity: null,
++  defaultModelSelection: null,
++  scripts: [],
++  createdAt: minutesAgo(60 * 24 * 30),
++  updatedAt: minutesAgo(5),
++}));
++
++interface ThreadSpec {
++  readonly id: string;
++  readonly projectId: string;
++  readonly title: string;
++  readonly branch: string | null;
++  readonly updatedMinutesAgo: number;
++  readonly status?: "idle" | "running";
++  readonly settled?: boolean;
++  readonly lastMessage?: string;
++  readonly itemCount?: number;
++}
++
++const threadSpecs: ReadonlyArray<ThreadSpec> = [
++  {
++    id: DEMO_THREAD_ID,
++    projectId: "project-t3code",
++    title: "Let themes carry custom CSS",
++    branch: "feat/theme-css",
++    updatedMinutesAgo: 2,
++    lastMessage: "Theme CSS now applies after the app's styles.",
++    itemCount: 4,
++  },
++  {
++    id: "thread-composer",
++    projectId: "project-t3code",
++    title: "Composer attachments and drag-and-drop",
++    branch: "feat/composer-attachments",
++    updatedMinutesAgo: 6,
++    status: "running",
++  },
++  {
++    id: "thread-sidebar",
++    projectId: "project-t3code",
++    title: "Sidebar polish: settled sort order",
++    branch: "feat/sidebar-polish",
++    updatedMinutesAgo: 14,
++  },
++  {
++    id: "thread-hero",
++    projectId: "project-site",
++    title: "Interactive hero demo",
++    branch: "feat/hero-demo",
++    updatedMinutesAgo: 31,
++  },
++  {
++    id: "thread-crash",
++    projectId: "project-mobile",
++    title: "Crash-free sessions dashboard",
++    branch: "feat/crash-dashboard",
++    updatedMinutesAgo: 48,
++  },
++  {
++    id: "thread-pricing",
++    projectId: "project-site",
++    title: "Pricing page copy refresh",
++    branch: null,
++    updatedMinutesAgo: 60 * 4,
++    settled: true,
++  },
++];
++
++const modelSelection = { instanceId: PROVIDER, model: MODEL };
++
++function threadShell(spec: ThreadSpec) {
++  const updatedAt = minutesAgo(spec.updatedMinutesAgo);
++  return {
++    id: spec.id,
++    projectId: spec.projectId,
++    title: spec.title,
++    providerInstanceId: PROVIDER,
++    modelSelection,
++    runtimeMode: "full-access",
++    interactionMode: "default",
++    branch: spec.branch,
++    worktreePath: null,
++    activeProviderThreadId: null,
++    lineage: { rootThreadId: spec.id, parentThreadId: null, relationshipToParent: null },
++    forkedFrom: null,
++    createdBy: "user",
++    creationSource: "web",
++    latestRunId: null,
++    activeRunId: null,
++    activityRunStatus: spec.status === "running" ? "running" : null,
++    activityRunStartedAt: spec.status === "running" ? minutesAgo(spec.updatedMinutesAgo) : null,
++    status: spec.status ?? "idle",
++    pendingRuntimeRequest: null,
++    latestVisibleMessage: spec.lastMessage
++      ? { id: `${spec.id}-last`, role: "assistant", text: spec.lastMessage, updatedAt }
++      : null,
++    latestUserMessageAt: minutesAgo(spec.updatedMinutesAgo + 1),
++    hasActionableProposedPlan: false,
++    itemCount: spec.itemCount ?? 0,
++    visibleItemCount: spec.itemCount ?? 0,
++    createdAt: minutesAgo(spec.updatedMinutesAgo + 30),
++    updatedAt,
++    archivedAt: null,
++    settledOverride: spec.settled ? "settled" : null,
++    settledAt: spec.settled ? updatedAt : null,
++    lastVisitedAt: null,
++    deletedAt: null,
++  };
++}
++
++export const demoShellSnapshot = decodeJson(OrchestrationV2ShellSnapshot)({
++  schemaVersion: 1,
++  snapshotSequence: 1,
++  projects,
++  threads: threadSpecs.map(threadShell),
++  archivedThreads: [],
++});
++
++// ---------------------------------------------------------------------------
++// The conversation
++// ---------------------------------------------------------------------------
++
++type Turn = { readonly role: "user" | "assistant"; readonly text: string };
++
++const conversation: ReadonlyArray<Turn> = [
++  {
++    role: "user",
++    text: "Can themes carry their own CSS? I want a wallpaper behind the chat without forking the app.",
++  },
++  {
++    role: "assistant",
++    text: [
++      "Yes. A theme can now have an optional `css` field, applied after the app's own styles.",
++      "",
++      "### What changed",
++      "",
++      "- The theme editor has a **Custom CSS** section with a live preview.",
++      "- Import and export keep the CSS.",
++      "- Declarations that could load a file are dropped: `@import`, `image-set()`, and any `url()` that isn't `data:`.",
++      "",
++      "A wallpaper is a few lines:",
++      "",
++      "```css",
++      '[data-workspace-area="conversation"] {',
++      "  background-image: url(\"data:image/svg+xml,...\");",
++      "  background-size: cover;",
++      "}",
++      "```",
++    ].join("\n"),
++  },
++  { role: "user", text: "Does it work in dark mode too?" },
++  {
++    role: "assistant",
++    text: "Theme CSS applies in both modes. Scope a rule with `.dark` or `:root:not(.dark)` when it should only apply to one of them.",
++  },
++];
++
++function projection(threadId: string, turns: ReadonlyArray<Turn>) {
++  const shell = threadShell(threadSpecs.find((spec) => spec.id === threadId)!);
++  const items = turns.map((turn, index) => {
++    const at = minutesAgo(turns.length - index + 1);
++    const base = {
++      id: `${threadId}-item-${index}`,
++      threadId,
++      runId: null,
++      nodeId: null,
++      providerThreadId: null,
++      providerTurnId: null,
++      nativeItemRef: null,
++      parentItemId: null,
++      ordinal: index,
++      status: "completed",
++      title: null,
++      startedAt: at,
++      completedAt: at,
++      updatedAt: at,
++      messageId: `${threadId}-message-${index}`,
++      text: turn.text,
++      attachments: [],
++    };
++    return turn.role === "user"
++      ? {
++          ...base,
++          type: "user_message",
++          createdBy: "user",
++          creationSource: "web",
++          inputIntent: "turn_start",
++        }
++      : { ...base, type: "assistant_message", streaming: false };
++  });
++  const messages = turns.map((turn, index) => {
++    const at = minutesAgo(turns.length - index + 1);
++    return {
++      id: `${threadId}-message-${index}`,
++      threadId,
++      runId: null,
++      nodeId: null,
++      role: turn.role,
++      text: turn.text,
++      attachments: [],
++      streaming: false,
++      createdBy: turn.role === "user" ? "user" : "agent",
++      creationSource: "web",
++      createdAt: at,
++      updatedAt: at,
++    };
++  });
++  return decodeJson(OrchestrationV2ThreadProjection)({
++    thread: {
++      id: shell.id,
++      projectId: shell.projectId,
++      title: shell.title,
++      providerInstanceId: shell.providerInstanceId,
++      modelSelection: shell.modelSelection,
++      runtimeMode: shell.runtimeMode,
++      interactionMode: shell.interactionMode,
++      branch: shell.branch,
++      worktreePath: shell.worktreePath,
++      activeProviderThreadId: null,
++      lineage: shell.lineage,
++      forkedFrom: null,
++      createdBy: "user",
++      creationSource: "web",
++      createdAt: shell.createdAt,
++      updatedAt: shell.updatedAt,
++      archivedAt: null,
++      settledOverride: shell.settledOverride,
++      settledAt: shell.settledAt,
++      lastVisitedAt: null,
++      deletedAt: null,
++    },
++    runs: [],
++    attempts: [],
++    nodes: [],
++    subagents: [],
++    providerSessions: [],
++    providerThreads: [],
++    providerTurns: [],
++    runtimeRequests: [],
++    messages,
++    plans: [],
++    turnItems: items,
++    checkpointScopes: [],
++    checkpoints: [],
++    contextHandoffs: [],
++    contextTransfers: [],
++    visibleTurnItems: items.map((item, index) => ({
++      position: index,
++      visibility: "local",
++      sourceThreadId: threadId,
++      sourceItemId: item.id,
++      item,
++    })),
++    updatedAt: shell.updatedAt,
++  });
++}
++
++const projectionCache = new Map<string, OrchestrationV2ThreadProjection>();
++
++/** The projection for a demo thread; threads other than the showcase one are empty. */
++export function demoThreadProjection(threadId: string): OrchestrationV2ThreadProjection | null {
++  if (!threadSpecs.some((spec) => spec.id === threadId)) return null;
++  let cached = projectionCache.get(threadId);
++  if (!cached) {
++    cached = projection(threadId, threadId === DEMO_THREAD_ID ? conversation : []);
++    projectionCache.set(threadId, cached);
++  }
++  return cached;
++}
+diff --git a/apps/web/src/demo/main.tsx b/apps/web/src/demo/main.tsx
+new file mode 100644
+index 0000000000..4159909c5a
+--- /dev/null
++++ b/apps/web/src/demo/main.tsx
+@@ -0,0 +1,96 @@
++import React from "react";
++import ReactDOM from "react-dom/client";
++import { createHashHistory } from "@tanstack/react-router";
++
++import "@fontsource-variable/inter";
++import "../index.css";
++
++import { DEMO_ENVIRONMENT_ID, DEMO_THREAD_ID } from "./fixtures";
++import { startDemoServer } from "./server";
++
++startDemoServer();
++
++function wheelDeltaInPixels(event: WheelEvent, scrollTarget: HTMLElement): number {
++  if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
++    return event.deltaY * 16;
++  }
++  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
++    return event.deltaY * scrollTarget.clientHeight;
++  }
++  return event.deltaY;
++}
++
++function verticalScrollTarget(event: WheelEvent): HTMLElement | null {
++  if (event.deltaY === 0) {
++    return null;
++  }
++
++  for (const candidate of event.composedPath()) {
++    if (!(candidate instanceof HTMLElement)) {
++      continue;
++    }
++    const { overflowY } = window.getComputedStyle(candidate);
++    if (
++      (overflowY === "auto" || overflowY === "scroll") &&
++      candidate.scrollHeight > candidate.clientHeight + 1 &&
++      (event.deltaY < 0
++        ? candidate.scrollTop > 0
++        : candidate.scrollTop + candidate.clientHeight < candidate.scrollHeight - 1)
++    ) {
++      return candidate;
++    }
++  }
++
++  return null;
++}
++
++// Embedding pages may scale this iframe. Some browsers lose default wheel scrolling on transformed virtualized
++// scrollers, so the demo applies the gesture to the real element under the
++// pointer. This remains user-driven and works for every scrollable app surface.
++function installDemoWheelScrolling(): void {
++  document.addEventListener(
++    "wheel",
++    (event) => {
++      if (event.defaultPrevented || event.ctrlKey || event.shiftKey) {
++        return;
++      }
++      const scrollTarget = verticalScrollTarget(event);
++      if (!scrollTarget) {
++        return;
++      }
++      event.preventDefault();
++      scrollTarget.scrollTop += wheelDeltaInPixels(event, scrollTarget);
++    },
++    { capture: true, passive: false },
++  );
++}
++
++installDemoWheelScrolling();
++
++// Hash history keeps the demo self-contained on a single static page.
++if (window.location.hash === "" || window.location.hash === "#/") {
++  window.history.replaceState(
++    window.history.state,
++    "",
++    `${window.location.pathname}${window.location.search}#/${DEMO_ENVIRONMENT_ID}/${DEMO_THREAD_ID}`,
++  );
++}
++
++// The same startup as main.tsx, minus hosted sign-in. App modules load only
++// after the demo server has taken over fetch and WebSocket.
++async function renderDemo(): Promise<void> {
++  const [{ startAppServices }, { AppRoot }, { whenLocaleReady }] = await Promise.all([
++    import("../appInit"),
++    import("../AppRoot"),
++    import("../i18n/runtime"),
++  ]);
++  const router = startAppServices(createHashHistory());
++  await router.load().then(whenLocaleReady);
++  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
++    <React.StrictMode>
++      <AppRoot router={router} />
++    </React.StrictMode>,
++  );
++}
++
++void renderDemo();
+diff --git a/apps/web/src/demo/server.ts b/apps/web/src/demo/server.ts
+new file mode 100644
+index 0000000000..421eaaa78d
+--- /dev/null
++++ b/apps/web/src/demo/server.ts
+@@ -0,0 +1,361 @@
++/**
++ * In-browser backend for the static demo build (theme previews). Serves the
++ * real `WsRpcGroup` contract over in-memory WebSocket pairs and answers the
++ * few HTTP routes the client calls at startup, so the unmodified web app runs
++ * on fixture data with no server and no network.
++ *
++ * Only what the demo shows is implemented. Every other RPC gets a generated
++ * default (a stream that stays open, or an authorization error), so methods
++ * added upstream do not break the build; `?demo-debug` logs each one called.
++ */
++import {
++  AuthSessionState,
++  AuthWebSocketTicketResult,
++  EnvironmentAuthorizationError,
++  ExecutionEnvironmentDescriptor,
++  ORCHESTRATION_V2_WS_METHODS,
++  OrchestrationV2ShellHttpSnapshot,
++  type OrchestrationV2ShellStreamItem,
++  type OrchestrationV2ThreadStreamItem,
++  RpcScopeAuthorization,
++  type ServerConfigStreamEvent,
++  type ServerLifecycleStreamEvent,
++  type ServerSettings,
++  WS_METHODS,
++  WsRpcGroup,
++} from "@t3tools/contracts";
++import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
++import * as Effect from "effect/Effect";
++import * as Layer from "effect/Layer";
++import * as Queue from "effect/Queue";
++import * as Schema from "effect/Schema";
++import * as Stream from "effect/Stream";
++import { RpcSchema, RpcSerialization, RpcServer } from "effect/rpc";
++import * as Socket from "effect/socket/Socket";
++import * as SocketServer from "effect/socket/SocketServer";
++
++import {
++  demoDescriptor,
++  demoServerConfig,
++  demoShellSnapshot,
++  demoThreadProjection,
++} from "./fixtures";
++
++const debug =
++  typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo-debug");
++const log = (...args: ReadonlyArray<unknown>) => {
++  if (debug) console.info("[demo]", ...args);
++};
++
++// ---------------------------------------------------------------------------
++// In-memory WebSocket pair
++// ---------------------------------------------------------------------------
++
++type Listener = (event: unknown) => void;
++
++class DemoSocketEndpoint {
++  static readonly CONNECTING = 0;
++  static readonly OPEN = 1;
++  static readonly CLOSING = 2;
++  static readonly CLOSED = 3;
++  readonly CONNECTING = 0;
++  readonly OPEN = 1;
++  readonly CLOSING = 2;
++  readonly CLOSED = 3;
++
++  readyState = DemoSocketEndpoint.CONNECTING;
++  binaryType = "arraybuffer";
++  protocol = "";
++  extensions = "";
++  bufferedAmount = 0;
++  peer: DemoSocketEndpoint | null = null;
++  onopen: Listener | null = null;
++  onmessage: Listener | null = null;
++  onclose: Listener | null = null;
++  onerror: Listener | null = null;
++
++  private listeners = new Map<string, Set<Listener>>();
++  private buffered: Array<unknown> = [];
++
++  addEventListener(type: string, listener: Listener): void {
++    let set = this.listeners.get(type);
++    if (!set) this.listeners.set(type, (set = new Set()));
++    set.add(listener);
++    if (type === "message" && this.buffered.length > 0) {
++      const pending = this.buffered.splice(0);
++      queueMicrotask(() => pending.forEach((event) => this.dispatch("message", event)));
++    }
++  }
++
++  removeEventListener(type: string, listener: Listener): void {
++    this.listeners.get(type)?.delete(listener);
++  }
++
++  dispatch(type: string, event: unknown): void {
++    const handler = (this as unknown as Record<string, Listener | null>)[`on${type}`];
++    const set = this.listeners.get(type);
++    if (!handler && (!set || set.size === 0)) {
++      if (type === "message") this.buffered.push(event);
++      return;
++    }
++    handler?.(event);
++    set?.forEach((listener) => listener(event));
++  }
++
++  open(): void {
++    this.readyState = DemoSocketEndpoint.OPEN;
++    queueMicrotask(() => this.dispatch("open", { type: "open" }));
++  }
++
++  send(data: unknown): void {
++    const peer = this.peer;
++    if (!peer || peer.readyState !== DemoSocketEndpoint.OPEN) return;
++    queueMicrotask(() => peer.dispatch("message", { type: "message", data }));
++  }
++
++  close(code = 1000, reason = ""): void {
++    if (this.readyState === DemoSocketEndpoint.CLOSED) return;
++    this.readyState = DemoSocketEndpoint.CLOSED;
++    const peer = this.peer;
++    queueMicrotask(() => {
++      this.dispatch("close", { type: "close", code, reason, wasClean: true });
++      if (peer && peer.readyState !== DemoSocketEndpoint.CLOSED) peer.close(code, reason);
++    });
++  }
++}
++
++class DemoConnectionAcceptor {
++  private pending: Array<DemoSocketEndpoint> = [];
++  private listener: ((server: DemoSocketEndpoint) => void) | null = null;
++
++  accept(listener: (server: DemoSocketEndpoint) => void): void {
++    this.listener = listener;
++    this.pending.splice(0).forEach(listener);
++  }
++
++  connectClient(): DemoSocketEndpoint {
++    const client = new DemoSocketEndpoint();
++    const server = new DemoSocketEndpoint();
++    client.peer = server;
++    server.peer = client;
++    server.open();
++    client.open();
++    if (this.listener) this.listener(server);
++    else this.pending.push(server);
++    return client;
++  }
++}
++
++const acceptor = new DemoConnectionAcceptor();
++
++// ---------------------------------------------------------------------------
++// HTTP routes the client calls before and beside the socket
++// ---------------------------------------------------------------------------
++
++const json = (body: unknown, status = 200) =>
++  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
++const encodeJson = <S extends Schema.Top>(schema: S, value: S["Type"]) =>
++  Schema.encodeSync(Schema.toCodecJson(schema))(value);
++
++function demoHttpResponse(url: URL): Response {
++  switch (url.pathname) {
++    case "/.well-known/t3/environment":
++      return json(encodeJson(ExecutionEnvironmentDescriptor, demoDescriptor));
++    case "/api/auth/session":
++      return json(
++        encodeJson(AuthSessionState, {
++          authenticated: true,
++          auth: demoServerConfig.auth,
++          scopes: ["orchestration:read", "orchestration:operate", "access:read"],
++        } as AuthSessionState),
++      );
++    case "/api/auth/websocket-ticket":
++    case "/api/auth/websocket-ticket/rpc":
++    case "/api/auth/websocket-ticket/media":
++      return json(
++        encodeJson(AuthWebSocketTicketResult, {
++          ticket: "demo-ticket",
++          expiresAt: new Date(Date.now() + 5 * 60_000),
++        } as unknown as AuthWebSocketTicketResult),
++      );
++    case "/api/orchestration/shell":
++      return json(encodeJson(OrchestrationV2ShellHttpSnapshot, demoShellSnapshot));
++  }
++  log("HTTP 404", url.pathname);
++  return json({ error: "Not available in the demo" }, 404);
++}
++
++function installNetworkInterceptors(): void {
++  // Effect reads this newer Headers API when decoding responses.
++  const headers = Headers.prototype as unknown as { getSetCookie?: () => Array<string> };
++  headers.getSetCookie ??= () => [];
++
++  const NativeWebSocket = globalThis.WebSocket;
++  const DemoWebSocket = function (url: string | URL, protocols?: string | Array<string>) {
++    const parsed = new URL(String(url), window.location.href);
++    log("WebSocket", parsed.href);
++    if (parsed.host === window.location.host && parsed.pathname.endsWith("/ws")) {
++      return acceptor.connectClient() as unknown as WebSocket;
++    }
++    return new NativeWebSocket(url, protocols);
++  } as unknown as typeof WebSocket;
++  DemoWebSocket.prototype = NativeWebSocket.prototype;
++  Object.assign(DemoWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
++  globalThis.WebSocket = DemoWebSocket;
++
++  const nativeFetch = globalThis.fetch.bind(globalThis);
++  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
++    const url = new URL(
++      typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
++      window.location.href,
++    );
++    log("fetch", url.href);
++    const isApi = url.pathname.startsWith("/api/") || url.pathname.startsWith("/.well-known/");
++    if (url.host === window.location.host && isApi) {
++      try {
++        return Promise.resolve(demoHttpResponse(url));
++      } catch (error) {
++        console.error("[demo] could not answer", url.pathname, error);
++        return Promise.resolve(json({ error: String(error) }, 500));
++      }
++    }
++    return nativeFetch(input, init);
++  };
++}
++
++// ---------------------------------------------------------------------------
++// RPC handlers
++// ---------------------------------------------------------------------------
++
++const notInDemo = (method: string) =>
++  new EnvironmentAuthorizationError({
++    message: `Not available in the demo: ${method}`,
++    requiredScope: "orchestration:operate",
++  });
++
++function settingsStore(initial: ServerSettings) {
++  let current = initial;
++  return {
++    get: () => current,
++    update: (patch: Parameters<typeof applyServerSettingsPatch>[1]) =>
++      (current = applyServerSettingsPatch(current, patch)),
++  };
++}
++
++const startedAt = new Date().toISOString();
++
++function overrides(): Record<string, (input: never) => unknown> {
++  const settings = settingsStore(demoServerConfig.settings);
++  const config = (): ServerConfigStreamEvent => ({
++    version: 1,
++    type: "snapshot",
++    config: { ...demoServerConfig, settings: settings.get() },
++  });
++  const ready = {
++    version: 1,
++    sequence: 1,
++    type: "ready",
++    payload: { at: startedAt, environment: demoDescriptor },
++  } as unknown as ServerLifecycleStreamEvent;
++  const forever = <A>(...first: ReadonlyArray<A>) =>
++    Stream.concat(Stream.fromIterable(first), Stream.never);
++
++  return {
++    [WS_METHODS.serverProbe]: () => Effect.succeed({}),
++    [WS_METHODS.serverGetConfig]: () => Effect.sync(() => config().config),
++    [WS_METHODS.serverGetSettings]: () => Effect.sync(settings.get),
++    [WS_METHODS.serverUpdateSettings]: ({ patch }: { patch: never }) =>
++      Effect.sync(() => settings.update(patch)),
++    [WS_METHODS.subscribeServerConfig]: () => forever(config()),
++    [WS_METHODS.subscribeServerLifecycle]: () => forever(ready),
++    [WS_METHODS.serverReportClientActivity]: () => Effect.void,
++    [ORCHESTRATION_V2_WS_METHODS.subscribeShell]: () =>
++      forever<OrchestrationV2ShellStreamItem>(
++        { kind: "snapshot", snapshot: demoShellSnapshot },
++        { kind: "synchronized" },
++      ),
++    [ORCHESTRATION_V2_WS_METHODS.subscribeThread]: ({ threadId }: { threadId: string }) => {
++      const projection = demoThreadProjection(threadId);
++      if (!projection) return Stream.fail(notInDemo(`thread ${threadId}`));
++      return forever<OrchestrationV2ThreadStreamItem>(
++        { kind: "snapshot", snapshotSequence: 1, projection } as OrchestrationV2ThreadStreamItem,
++        { kind: "synchronized" },
++      );
++    },
++    [ORCHESTRATION_V2_WS_METHODS.getThreadProjection]: ({ threadId }: { threadId: string }) => {
++      const projection = demoThreadProjection(threadId);
++      return projection ? Effect.succeed(projection) : Effect.fail(notInDemo(`thread ${threadId}`));
++    },
++    [ORCHESTRATION_V2_WS_METHODS.searchThreads]: () => Effect.succeed({ matches: [] }),
++    [ORCHESTRATION_V2_WS_METHODS.getArchivedShellSnapshot]: () =>
++      Effect.succeed({ schemaVersion: 1, snapshotSequence: 1, projects: [], threads: [] }),
++    // Fixture projects are not repositories on disk; answer so the app stops retrying.
++    [WS_METHODS.vcsListRefs]: () =>
++      Effect.succeed({
++        refs: [],
++        isRepo: true,
++        hasPrimaryRemote: false,
++        nextCursor: null,
++        totalCount: 0,
++      }),
++  };
++}
++
++/** Every method in the contract: the demo's own handler, or a generated default. */
++function handlers() {
++  const own = overrides();
++  const all: Record<string, unknown> = {};
++  for (const [tag, rpc] of WsRpcGroup.requests) {
++    const handler = own[tag];
++    if (handler) {
++      all[tag] = (input: never) => {
++        log("rpc", tag);
++        return handler(input);
++      };
++    } else if (RpcSchema.isStreamSchema(rpc.successSchema)) {
++      all[tag] = () => {
++        log("rpc (default: open stream)", tag);
++        return Stream.never;
++      };
++    } else {
++      all[tag] = () => {
++        log("rpc (default: not available)", tag);
++        return Effect.fail(notInDemo(tag));
++      };
++    }
++  }
++  return all as never;
++}
++
++const socketServerLayer = Layer.succeed(
++  SocketServer.SocketServer,
++  SocketServer.SocketServer.of({
++    address: { _tag: "TcpAddress", hostname: "demo", port: 0 },
++    run: <R, E, A>(handler: (socket: Socket.Socket) => Effect.Effect<A, E, R>) =>
++      Effect.gen(function* () {
++        const queue = yield* Queue.unbounded<DemoSocketEndpoint>();
++        acceptor.accept((endpoint) => Queue.offerUnsafe(queue, endpoint));
++        return yield* Queue.take(queue).pipe(
++          Effect.flatMap((endpoint) =>
++            Socket.fromWebSocket(Effect.succeed(endpoint as unknown as globalThis.WebSocket)).pipe(
++              Effect.flatMap((socket) => Effect.forkChild(handler(socket))),
++            ),
++          ),
++          Effect.forever,
++        );
++      }),
++  }),
++);
++
++export function startDemoServer(): void {
++  installNetworkInterceptors();
++  const server = RpcServer.layer(WsRpcGroup, { disableTracing: true }).pipe(
++    Layer.provide(WsRpcGroup.toLayer(Effect.succeed(handlers()))),
++    // The real server checks scopes here; the demo session may do anything it offers.
++    Layer.provide(Layer.succeed(RpcScopeAuthorization)((effect) => effect)),
++    Layer.provide(RpcServer.layerProtocolSocketServer),
++    Layer.provide(socketServerLayer),
++    Layer.provide(RpcSerialization.layerJson),
++  );
++  Effect.runFork(Layer.launch(server));
++}
+diff --git a/apps/web/vite.demo.config.ts b/apps/web/vite.demo.config.ts
+new file mode 100644
+index 0000000000..87d365cd2e
+--- /dev/null
++++ b/apps/web/vite.demo.config.ts
+@@ -0,0 +1,43 @@
++import react from "@vitejs/plugin-react";
++import { tanstackRouter } from "@tanstack/router-plugin/vite";
++import { defineConfig } from "vite-plus";
++import pkg from "./package.json" with { type: "json" };
++import { tailwindPlugins } from "./vite/tailwind";
++
++// Builds demo mode: the real web app bundled against an in-browser fake server
++// (src/demo), as a static page with no backend. Every URL and key is blank, so
++// nothing in the bundle reaches the network.
++export default defineConfig(() => ({
++  assetsInclude: ["**/*.wasm"],
++  plugins: [tanstackRouter({ autoCodeSplitting: true }), react({ compiler: true }), tailwindPlugins(false)],
++  base: "./",
++  define: {
++    "import.meta.env.VITE_WS_URL": JSON.stringify(""),
++    "import.meta.env.VITE_HTTP_URL": JSON.stringify(""),
++    "import.meta.env.VITE_T3CODE_RELAY_URL": JSON.stringify(""),
++    "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(""),
++    "import.meta.env.VITE_CLERK_JWT_TEMPLATE": JSON.stringify(""),
++    "import.meta.env.VITE_CLERK_CLI_OAUTH_CLIENT_ID": JSON.stringify(""),
++    "import.meta.env.VITE_RELAY_OTLP_TRACES_URL": JSON.stringify(""),
++    "import.meta.env.VITE_RELAY_OTLP_TRACES_DATASET": JSON.stringify(""),
++    "import.meta.env.VITE_RELAY_OTLP_TRACES_TOKEN": JSON.stringify(""),
++    "import.meta.env.VITE_HOSTED_APP_URL": JSON.stringify(""),
++    "import.meta.env.VITE_HOSTED_APP_CHANNEL": JSON.stringify(""),
++    "import.meta.env.T3CODE_DESKTOP_UPDATE_REPOSITORY": JSON.stringify(""),
++    "import.meta.env.T3CODE_FEATURE_SECRETS": JSON.stringify(""),
++    "import.meta.env.VITE_RELEASE_CHANNEL": JSON.stringify(""),
++    "import.meta.env.VITE_T3CODE_DEMO": JSON.stringify("true"),
++    "import.meta.env.APP_VERSION": JSON.stringify(pkg.version),
++  },
++  resolve: {
++    tsconfigPaths: true,
++    // Workspace sources bundled together must share one Effect runtime.
++    dedupe: ["effect", "react", "react-dom"],
++  },
++  build: {
++    outDir: "dist-demo",
++    emptyOutDir: true,
++    sourcemap: false,
++    rollupOptions: { input: ["demo.html"] },
++  },
++}));

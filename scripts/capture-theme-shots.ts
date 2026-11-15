@@ -102,15 +102,9 @@ for (const definition of [...officialThemes, ...communityThemes]) {
       definition.id,
       { timeout: 30_000 },
     );
-    // Open a showcase thread so the shot includes message surfaces instead of
-    // the empty new-thread state. Fixture titles may change upstream — if the
-    // row isn't found, the default view is still a fine screenshot.
-    try {
-      await page.getByText("Sidebar v2 polish").first().click({ timeout: 5_000 });
-    } catch {
-      // keep the new-thread view
-    }
-    // Give the demo fixtures a beat to paint (streamed messages, sidebar rows).
+    // The demo opens on its showcase thread (scripts/demo/), so the shot
+    // includes messages, a code block and the composer.
+    // Give the demo fixtures a beat to paint (sidebar rows, messages).
     await page.waitForTimeout(2_000);
 
     const file = path.join(shotsDir, `${definition.id}-${mode}.png`);
