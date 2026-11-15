@@ -24,7 +24,8 @@ ThemeFile v1 format plus `author`/`description` fields, filename matching the
 - `src/pages/` — index (gallery grid) and `themes/[id]` (detail pages)
 - `scripts/` — `validate-themes.ts` (CI validation), `check-theme-css.ts`
   (runs theme CSS through T3Code's guard in Chromium), `sync-vendor.mjs`,
-  `sync-demo.sh` (builds T3Code's demo bundle), `capture-theme-shots.ts`
+  `sync-demo.sh` (builds T3Code's demo bundle from a pinned commit plus
+  `demo/t3code-demo.patch`), `capture-theme-shots.ts`
   (Playwright screenshots), `fetch-demo-assets.sh` (deploy-time download)
 - `convex/` — likes schema + functions (needs `npx convex dev` to generate
   `_generated/`; site builds fine without it)

@@ -15,6 +15,7 @@ on:
       - "themes/**"
       - "src/vendor/**"
       - "scripts/sync-demo.sh"
+      - "scripts/demo/**"
       - "scripts/capture-theme-shots.ts"
       - "scripts/generate-theme-dates.mjs"
       - ".github/workflows/build-demo-assets.yml"
@@ -35,10 +36,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          # The pinned t3code commit requires this exact Node (its "engines").
+          node-version: 26.13.1
           cache: npm
-      - name: Install pnpm (t3code's package manager)
-        run: npm install -g pnpm@11.10.0
       - run: npm ci
       - name: Build T3Code demo bundle
         run: bash scripts/sync-demo.sh

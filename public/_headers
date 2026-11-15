@@ -1,0 +1,7 @@
+# The live preview runs T3Code's demo bundle with community theme CSS in it.
+# T3Code's own guard drops CSS that could load files; this keeps the page from
+# reaching anything but this site even if a load slips past that guard.
+# 'wasm-unsafe-eval' lets the code highlighter compile WebAssembly; it does not
+# allow eval() of JavaScript.
+/sidebar-demo/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'
