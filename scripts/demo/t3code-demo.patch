@@ -582,10 +582,10 @@ index 0000000000..4159909c5a
 +void renderDemo();
 diff --git a/apps/web/src/demo/server.ts b/apps/web/src/demo/server.ts
 new file mode 100644
-index 0000000000..421eaaa78d
+index 0000000000..43a047beed
 --- /dev/null
 +++ b/apps/web/src/demo/server.ts
-@@ -0,0 +1,361 @@
+@@ -0,0 +1,374 @@
 +/**
 + * In-browser backend for the static demo build (theme previews). Serves the
 + * real `WsRpcGroup` contract over in-memory WebSocket pairs and answers the
@@ -615,6 +615,7 @@ index 0000000000..421eaaa78d
 +import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
 +import * as Effect from "effect/Effect";
 +import * as Layer from "effect/Layer";
++import * as PubSub from "effect/PubSub";
 +import * as Queue from "effect/Queue";
 +import * as Schema from "effect/Schema";
 +import * as Stream from "effect/Stream";
@@ -834,6 +835,7 @@ index 0000000000..421eaaa78d
 +
 +function overrides(): Record<string, (input: never) => unknown> {
 +  const settings = settingsStore(demoServerConfig.settings);
++  const configUpdates = Effect.runSync(PubSub.unbounded<ServerConfigStreamEvent>());
 +  const config = (): ServerConfigStreamEvent => ({
 +    version: 1,
 +    type: "snapshot",
@@ -853,8 +855,19 @@ index 0000000000..421eaaa78d
 +    [WS_METHODS.serverGetConfig]: () => Effect.sync(() => config().config),
 +    [WS_METHODS.serverGetSettings]: () => Effect.sync(settings.get),
 +    [WS_METHODS.serverUpdateSettings]: ({ patch }: { patch: never }) =>
-+      Effect.sync(() => settings.update(patch)),
-+    [WS_METHODS.subscribeServerConfig]: () => forever(config()),
++      Effect.sync(() => settings.update(patch)).pipe(
++        // The app waits for the config stream to echo a change (the model
++        // picker's favorite star, for one), not just for this reply.
++        Effect.tap((updated) =>
++          PubSub.publish(configUpdates, {
++            version: 1,
++            type: "settingsUpdated",
++            payload: { settings: updated },
++          }),
++        ),
++      ),
++    [WS_METHODS.subscribeServerConfig]: () =>
++      Stream.concat(Stream.make(config()), Stream.fromPubSub(configUpdates)),
 +    [WS_METHODS.subscribeServerLifecycle]: () => forever(ready),
 +    [WS_METHODS.serverReportClientActivity]: () => Effect.void,
 +    [ORCHESTRATION_V2_WS_METHODS.subscribeShell]: () =>
