@@ -9,12 +9,16 @@ function listSheet(sheet: CSSStyleSheet): string[] {
   const out: string[] = [];
   const walk = (rules: CSSRuleList, trail: string) => {
     for (const rule of Array.from(rules)) {
+      // Bare declarations inside a nested rule have no selector; their cssText
+      // holds the declarations, so it would change when one is removed.
       const head =
         rule instanceof CSSStyleRule
           ? rule.selectorText
           : rule instanceof CSSKeyframeRule
             ? rule.keyText
-            : rule.cssText.split("{")[0]!.trim();
+            : rule.constructor.name === "CSSNestedDeclarations"
+              ? "(declarations)"
+              : rule.cssText.split("{")[0]!.trim();
       const here = trail ? `${trail} › ${head}` : head;
       out.push(here);
       if ("style" in rule && rule.style instanceof CSSStyleDeclaration) {
@@ -28,9 +32,14 @@ function listSheet(sheet: CSSStyleSheet): string[] {
 }
 
 function droppedByGuard(css: string): string[] {
-  const parsed = new CSSStyleSheet();
-  parsed.replaceSync(css);
-  const before = listSheet(parsed);
+  // Parse the baseline in a <style> element, not a constructed sheet: those
+  // drop @import without a trace (even an escaped `@\69mport`), and T3Code
+  // would then silently lose it. The page blocks all requests, so nothing loads.
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.append(style);
+  const before = listSheet(style.sheet!);
+  style.remove();
   applyThemeCss(css);
   const guarded = document.adoptedStyleSheets.at(-1);
   const remaining = new Map<string, number>();
