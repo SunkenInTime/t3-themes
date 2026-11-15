@@ -34,5 +34,9 @@ jobs:
       - run: npm ci
       - name: Validate theme files
         run: npm run validate
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check theme CSS against T3Code's guard
+        run: npm run check-css
       - name: Build site
         run: npm run build

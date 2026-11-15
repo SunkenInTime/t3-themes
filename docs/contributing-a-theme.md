@@ -66,7 +66,10 @@ in the file.
 
 Themes containing `css` require manual review and are excluded from automatic
 merging. CI rejects CSS that loads external files, since clients block those
-loads and would render an incomplete theme.
+loads and would render an incomplete theme. `npm run check-css` runs the CSS
+through T3Code's own guard in headless Chromium (run
+`npx playwright install chromium` once first) and lists anything it would
+drop, including `url()` spelled with backslash escapes.
 
 Color values may use hexadecimal, named colors, or CSS functions such as
 `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and
