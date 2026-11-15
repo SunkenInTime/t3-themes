@@ -38,10 +38,18 @@ const bundle = await build({
   logLevel: "silent",
 });
 
+// Spellings the check must catch: escapes dodge text checks, and an import
+// vanishes from constructed sheets before any comparison sees it.
+const SELF_TEST = [
+  { label: "self-test: escaped @import", css: '@\\69mport "https://example.invalid/a.css"; .x{color:red}' },
+  { label: "self-test: escaped url() in a nested custom property", css: ".x{& .y{color:blue} color:red; --a: \\75rl(https://example.invalid/b)}" },
+];
+
 const browser = await chromium.launch();
 const errors: string[] = [];
 try {
-  for (const theme of themes) {
+  for (const theme of [...SELF_TEST, ...themes]) {
+    const selfTest = SELF_TEST.includes(theme);
     const page = await browser.newPage();
     // Nothing in here should reach the network, whatever the CSS says.
     await page.route("**/*", (route) => route.abort());
@@ -52,6 +60,12 @@ try {
       theme.css,
     );
     await page.close();
+    if (selfTest) {
+      if (dropped.length !== 1) {
+        errors.push(`${theme.label}: expected exactly 1 dropped part, got ${JSON.stringify(dropped)}`);
+      }
+      continue;
+    }
     if (dropped.length > 0) {
       errors.push(
         `${theme.label}: T3Code would drop ${dropped.length} part(s) of this CSS, because they could load files ` +
