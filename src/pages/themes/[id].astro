@@ -3,6 +3,7 @@ import CopyJsonButton from "../../components/CopyJsonButton";
 import LikeButton from "../../components/LikeButton";
 import LivePreview from "../../components/LivePreview";
 import Layout from "../../layouts/Layout.astro";
+import { formatCss } from "../../lib/formatCss";
 import { demoAvailable, themeShot } from "../../lib/shots";
 import { allThemes, modePair, previewColors, resolvedModes } from "../../lib/themes";
 import { ThemeWireframe } from "../../vendor/t3code/components/settings/ThemeWireframe";
@@ -75,6 +76,16 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
         }
       </p>
       {theme.description && <p class="mt-2 max-w-xl text-ink-muted">{theme.description}</p>}
+      {
+        definition.css && (
+          <a
+            href="#custom-css"
+            class="mt-3 inline-block rounded-full border border-border/60 px-2.5 py-0.5 font-mono text-xs text-ink-muted transition-colors hover:text-ink"
+          >
+            custom CSS
+          </a>
+        )
+      }
     </div>
     <div class="flex items-center gap-3">
       <LikeButton client:load themeId={definition.id} />
@@ -118,14 +129,6 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
       <li>In T3Code, open <span class="text-ink">Settings → Themes → Import theme</span>.</li>
       <li>Paste the JSON and confirm.</li>
     </ol>
-    {definition.css && (
-      <p class="mt-3 text-sm text-ink-muted">
-        This theme includes custom CSS. Use a T3Code client that supports importing
-        theme CSS. If you installed an older palette-only copy, update or remove
-        that copy and import this JSON again. Reduced-motion settings may disable
-        its animations.
-      </p>
-    )}
     {
       theme.sourcePath && (
         <p class="mt-3 font-mono text-xs text-ink-muted">
@@ -141,6 +144,34 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
       )
     }
   </section>
+
+  {
+    definition.css && (
+      <section id="custom-css" class="mt-10 scroll-mt-6">
+        <h2 class="mb-3 font-mono text-xs uppercase tracking-widest text-ink-muted">
+          Custom CSS
+        </h2>
+        <div class="max-w-2xl space-y-2 text-sm text-ink-muted">
+          <p>
+            This theme changes more than colors. T3Code blocks theme CSS from loading
+            files, but the CSS can still move, hide or restyle any part of the app and
+            add text to it. Read it before you import.
+          </p>
+          <p>
+            It needs a T3Code version that imports theme CSS. If you installed an
+            older colors-only copy, remove it and import this JSON again.
+            Reduced-motion settings may turn off its animations.
+          </p>
+        </div>
+        <details class="mt-4 rounded-lg border border-border/60 bg-card">
+          <summary class="cursor-pointer px-4 py-2 font-mono text-xs text-ink-muted transition-colors hover:text-ink">
+            View CSS · {(definition.css.length / 1000).toFixed(1)} KB, formatted for reading
+          </summary>
+          <pre class="max-h-[32rem] overflow-auto whitespace-pre-wrap break-all border-t border-border/60 px-4 py-3 font-mono text-xs leading-relaxed"><code>{formatCss(definition.css)}</code></pre>
+        </details>
+      </section>
+    )
+  }
 
   {
     modes.map(({ mode, colors }) => (
