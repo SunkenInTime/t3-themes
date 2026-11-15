@@ -22,7 +22,8 @@ ThemeFile v1 format plus `author`/`description` fields, filename matching the
   ours. `@t3tools/*` imports resolve through `paths` in `tsconfig.json`.
 - `src/lib/themes.ts` — loads built-in + community themes at build time
 - `src/pages/` — index (gallery grid) and `themes/[id]` (detail pages)
-- `scripts/` — `validate-themes.ts` (CI validation), `sync-vendor.mjs`,
+- `scripts/` — `validate-themes.ts` (CI validation), `check-theme-css.ts`
+  (runs theme CSS through T3Code's guard in Chromium), `sync-vendor.mjs`,
   `sync-demo.sh` (builds T3Code's demo bundle), `capture-theme-shots.ts`
   (Playwright screenshots), `fetch-demo-assets.sh` (deploy-time download)
 - `convex/` — likes schema + functions (needs `npx convex dev` to generate
@@ -34,6 +35,7 @@ ThemeFile v1 format plus `author`/`description` fields, filename matching the
 npm install
 npm run dev        # localhost:4321
 npm run validate   # theme validation (what CI runs)
+npm run check-css  # theme CSS vs T3Code's guard (CI; needs Playwright Chromium)
 npm run build      # static build; must pass before any PR
 ```
 

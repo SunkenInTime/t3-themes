@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "validate": "tsx scripts/validate-themes.ts",
     "sync-vendor": "node scripts/sync-vendor.mjs",
-    "shots": "tsx scripts/capture-theme-shots.ts"
+    "shots": "tsx scripts/capture-theme-shots.ts",
+    "check-css": "tsx scripts/check-theme-css.ts"
   },
   "dependencies": {
     "@astrojs/react": "^4.3.0",
@@ -31,6 +32,7 @@
     "@types/culori": "^4.0.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "esbuild": "^0.27.7",
     "playwright": "^1.62.1",
     "tsx": "^4.20.0",
     "typescript": "^5.8.0"
