@@ -57,11 +57,16 @@ Validation runs the file through T3Code's own parser (vendored at
 | `appearance` | Required. `"light"` or `"dark"` — the theme's base mode. |
 | `colors` | Required. At least one role. Keys must be valid color roles (the full list is `THEME_COLOR_ROLES` in `src/vendor/t3code/themePalette.ts` — read it there, do not trust a hardcoded list elsewhere). Values must be literal CSS colors. T3Code accepts the CSS color formats supported by its Culori parser and normalizes them to canonical `oklch(...)` values at runtime. |
 | `variants` | Optional. An object keyed by the **other** appearance only (a dark theme may have `variants.light`, never `variants.dark`), containing another `colors`-shaped object. |
+| `css` | Optional. CSS text, at most 20,000 characters. Requires a client with theme CSS import support. External file loads are blocked; embed images with `data:` URLs. Respect reduced-motion preferences. |
 | `author` | Gallery-only. Contributor's GitHub username (validated against GitHub username rules). Should match the PR author. |
 | `description` | Gallery-only. String, 200 characters or fewer. |
 
 Gallery-only fields are ignored by T3Code on import, so they are safe to keep
 in the file.
+
+Themes containing `css` require manual review and are excluded from automatic
+merging. CI rejects CSS that loads external files, since clients block those
+loads and would render an incomplete theme.
 
 Color values may use hexadecimal, named colors, or CSS functions such as
 `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and

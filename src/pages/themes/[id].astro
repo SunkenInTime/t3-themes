@@ -118,6 +118,14 @@ const groupedRoles = [...GROUPS.map((group) => group.label), "other"]
       <li>In T3Code, open <span class="text-ink">Settings → Themes → Import theme</span>.</li>
       <li>Paste the JSON and confirm.</li>
     </ol>
+    {definition.css && (
+      <p class="mt-3 text-sm text-ink-muted">
+        This theme includes custom CSS. Use a T3Code client that supports importing
+        theme CSS. If you installed an older palette-only copy, update or remove
+        that copy and import this JSON again. Reduced-motion settings may disable
+        its animations.
+      </p>
+    )}
     {
       theme.sourcePath && (
         <p class="mt-3 font-mono text-xs text-ink-muted">

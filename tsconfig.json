@@ -5,7 +5,8 @@
     "jsxImportSource": "react",
     "paths": {
       "@t3tools/contracts": ["./src/vendor/t3code/shims/contracts.ts"],
-      "@t3tools/shared/themePalettes": ["./src/vendor/t3code/shared/themePalettes.ts"]
+      "@t3tools/shared/themePalettes": ["./src/vendor/t3code/shared/themePalettes.ts"],
+      "@t3tools/shared/themeCss": ["./src/vendor/t3code/shared/themeCss.ts"]
     }
   },
   "include": ["src/**/*", "scripts/**/*"],
