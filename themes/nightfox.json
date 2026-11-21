@@ -94,7 +94,7 @@
       "mutedForeground": "#736e85",
       "placeholder": "#736e85",
       "searchMatchActiveBackground": "#ea9d34",
-      "searchMatchActiveForeground": "#faf4ed",
+      "searchMatchActiveForeground": "#3f3b5c",
       "searchMatchBackground": "#f5e2c6",
       "searchMatchForeground": "#3f3b5c",
       "secondary": "#eae4e1",
@@ -129,7 +129,7 @@
       "updateForeground": "#faf4ed",
       "updateSurface": "#e6eff1",
       "warning": "#ea9d34",
-      "warningForeground": "#faf4ed",
+      "warningForeground": "#3f3b5c",
       "warningSurface": "#f7ecdc"
     }
   }
