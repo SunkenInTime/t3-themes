@@ -1,13 +1,16 @@
 // Takes real "photos" of every theme: boots the T3Code demo bundle
 // (public/sidebar-demo, see scripts/sync-demo.sh) in headless Chromium with
 // the theme injected via localStorage, and screenshots the running app into
-// public/shots/<id>-<mode>.png. Run with: npm run shots
+// public/shots/<id>-<mode>.png, plus a small <id>-<mode>.webp for the gallery
+// cards (the full PNG is ~1 MB; cards are a few hundred pixels wide).
+// Run with: npm run shots
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import sharp from "sharp";
 import {
   EMBER_THEME,
   GROVE_THEME,
@@ -23,6 +26,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const publicDir = path.join(root, "public");
 const shotsDir = path.join(publicDir, "shots");
 const PORT = 4599;
+// Gallery cards top out around 480 CSS px; 960 covers 2x displays.
+const CARD_WIDTH = 960;
 
 if (!existsSync(path.join(publicDir, "sidebar-demo/demo.html"))) {
   console.error("✗ public/sidebar-demo not found — run scripts/sync-demo.sh first.");
@@ -108,8 +113,12 @@ for (const definition of [...officialThemes, ...communityThemes]) {
     await page.waitForTimeout(2_000);
 
     const file = path.join(shotsDir, `${definition.id}-${mode}.png`);
-    await page.screenshot({ path: file });
-    console.log(`✓ ${path.relative(root, file)}`);
+    const png = await page.screenshot({ path: file });
+    await sharp(png)
+      .resize({ width: CARD_WIDTH })
+      .webp({ quality: 80 })
+      .toFile(path.join(shotsDir, `${definition.id}-${mode}.webp`));
+    console.log(`✓ ${path.relative(root, file)} (+ card .webp)`);
     captured += 1;
     await context.close();
   }

@@ -14,6 +14,14 @@ export function themeShot(id: string, mode: ThemeAppearance): string | null {
     : null;
 }
 
+/** Card-sized shot for the gallery grid: the small .webp when the assets
+ * include it, else the full PNG (asset tarballs built before the .webp). */
+export function themeCardShot(id: string, mode: ThemeAppearance): string | null {
+  return existsSync(path.join(publicDir, "shots", `${id}-${mode}.webp`))
+    ? `/shots/${id}-${mode}.webp`
+    : themeShot(id, mode);
+}
+
 /** Whether the T3Code demo bundle is part of this build (same tarball as the
  * shots). Decided at build time so pages never flicker or silently drop the
  * live preview on a flaky runtime check. */

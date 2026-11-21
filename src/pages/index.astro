@@ -1,27 +1,34 @@
 ---
 import CommunityGrid, { type CardData } from "../components/CommunityGrid";
 import Layout from "../layouts/Layout.astro";
-import { themeShot } from "../lib/shots";
+import { buildTimeLikeCounts } from "../lib/likeCounts";
+import { themeCardShot } from "../lib/shots";
 import { communityThemes, lightDark, wireframePanes } from "../lib/themes";
 import { getThemeModes } from "../vendor/t3code/themePalette";
 
 const cards: CardData[] = communityThemes.map((theme) => {
   const { definition } = theme;
+  const shotLight = themeCardShot(definition.id, "light");
+  const shotDark = themeCardShot(definition.id, "dark");
   return {
     id: definition.id,
     label: definition.label,
     byline: theme.author ? `by ${theme.author}` : "Community",
     description: theme.description,
     modes: getThemeModes(definition).join(" · "),
-    shotLight: themeShot(definition.id, "light"),
-    shotDark: themeShot(definition.id, "dark"),
-    panes: wireframePanes(definition),
+    shotLight,
+    shotDark,
+    // Only shipped when there's no screenshot to show; it's most of the
+    // page's weight otherwise.
+    panes: shotLight || shotDark ? null : wireframePanes(definition),
     swatches: (["canvas", "sidebar", "surface", "accent", "messageAction"] as const).map(
       (role) => lightDark(definition, role),
     ),
     addedAt: theme.addedAt,
   };
 });
+
+const likeCounts = await buildTimeLikeCounts();
 
 ---
 
@@ -47,7 +54,11 @@ const cards: CardData[] = communityThemes.map((theme) => {
           </a>
         </p>
       ) : (
-        <CommunityGrid client:load themes={cards} />
+        <CommunityGrid
+          client:load
+          themes={cards}
+          initialCounts={likeCounts}
+        />
       )
     }
   </section>
