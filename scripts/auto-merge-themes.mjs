@@ -81,10 +81,19 @@ for (const number of prNumbers) {
   } catch {
     skip("could not read theme file"); continue;
   }
-  // CSS can put text on screen with `content`, so screen it as well. Embedded
-  // data: files are left out, because random base64 can spell a denied word.
+  // CSS can put text on screen with `content`, so screen it as well, with CSS
+  // escapes decoded the way the browser reads them. Embedded url(data:...)
+  // files are left out, because random base64 can spell a denied word.
   const cssText =
-    typeof theme.css === "string" ? theme.css.replace(/data:[^"')\s]*/gi, "") : "";
+    typeof theme.css === "string"
+      ? theme.css
+          .replace(/\\([0-9a-f]{1,6})[ \t\n\f\r]?|\\([^\n])/gi, (_, hex, char) => {
+            if (!hex) return char;
+            const code = Number.parseInt(hex, 16);
+            return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "\ufffd";
+          })
+          .replace(/url\(\s*["']?data:[^"')\s]*/gi, "")
+      : "";
   const visible = [theme.id, theme.name, theme.description, theme.author, cssText].join(" ");
   if (DENY.test(visible)) { skip("content screen — left for manual review"); continue; }
 
