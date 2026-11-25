@@ -1,8 +1,9 @@
 // Auto-merges theme PRs that need no human judgment: exactly one
 // themes/*.json file, every check green (validate = T3Code's own parser,
 // ownership = author enforcement), a small content screen on the metadata,
-// and a short grace period. Themes with CSS require manual review.
-// Add the `hold` label to keep a PR open for
+// and a short grace period. Themes with CSS merge too: the validate check
+// runs their CSS through T3Code's guard, and the content screen reads the
+// CSS text. Add the `hold` label to keep a PR open for
 // manual review. Runs from .github/workflows/auto-merge-themes.yml.
 import { execFileSync } from "node:child_process";
 
@@ -80,8 +81,20 @@ for (const number of prNumbers) {
   } catch {
     skip("could not read theme file"); continue;
   }
-  if (theme.css !== undefined) { skip("custom CSS requires manual review"); continue; }
-  const visible = [theme.id, theme.name, theme.description, theme.author].join(" ");
+  // CSS can put text on screen with `content`, so screen it as well, with CSS
+  // escapes decoded the way the browser reads them. Embedded url(data:...)
+  // files are left out, because random base64 can spell a denied word.
+  const cssText =
+    typeof theme.css === "string"
+      ? theme.css
+          .replace(/\\([0-9a-f]{1,6})[ \t\n\f\r]?|\\([^\n])/gi, (_, hex, char) => {
+            if (!hex) return char;
+            const code = Number.parseInt(hex, 16);
+            return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "\ufffd";
+          })
+          .replace(/url\(\s*["']?data:[^"')\s]*/gi, "")
+      : "";
+  const visible = [theme.id, theme.name, theme.description, theme.author, cssText].join(" ");
   if (DENY.test(visible)) { skip("content screen — left for manual review"); continue; }
 
   try {
